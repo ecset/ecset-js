@@ -34,7 +34,6 @@ import {
 import { isInteger, isObject, isString } from '@odgn/utils';
 
 import { buildFlake53 } from '@odgn/utils';
-import { QueryStack } from "../query/stack";
 
 
 
@@ -108,7 +107,6 @@ export abstract class EntitySet {
     // for generation of entityids
     readonly eidEpoch: number = 1609459200000; // 2021-01-01T00:00:00.000Z
 
-    stack: QueryStack;
     
 
     constructor(data?: EntitySet, options: EntitySetOptions = {}) {
@@ -125,8 +123,6 @@ export abstract class EntitySet {
     abstract getUrl(): string;
 
     abstract clone(options?: CloneOptions): Promise<EntitySet>;
-
-    // abstract select(stack: QueryStack, query: StackValue[]): Promise<StackValue[]>;
 
     abstract size(): Promise<number>;
 
@@ -365,30 +361,57 @@ export abstract class EntitySet {
         return component;
     }
 
+
+    /**
+     * Returns a ComponentDef by its url
+     * 
+     * @param url 
+     * @returns 
+     */
     getByUrl(url: string): ComponentDef {
         const did = this.byUrl.get(url);
         return did === undefined ? undefined : this.componentDefs[did - 1];
     }
 
-    getByDefId(defId: number): ComponentDef {
+    /**
+     * Returns a ComponentDef by its id
+     * 
+     * @param defId 
+     * @returns 
+     */
+    getByDefId(defId: ComponentDefId): ComponentDef {
         return this.componentDefs[defId - 1];
     }
 
+    /**
+     * Returns a ComponentDef by its hash
+     * @param hash 
+     * @returns 
+     */
     getByHash(hash: number): ComponentDef {
         const did = this.byHash.get(hash);
         return did === undefined ? undefined : this.componentDefs[did - 1];
     }
 
+    
     /**
+     * Adds a Component to an Entity
      * 
+     * @param e 
+     * @param com 
+     * @returns 
      */
     addComponentToEntity(e: Entity, com: Component): Entity {
         return e.addComponentUnsafe(com);
     }
 
 
-    
-
+    /**
+     * Takes a Component and attempts to resolve its Def id
+     * 
+     * @param com 
+     * @returns 
+     */
     resolveComponent(com: (OrphanComponent | Component)): Component {
         if (!isExternalComponent(com)) {
             return com as any;
@@ -402,6 +425,13 @@ export abstract class EntitySet {
         return { ...com, [DefT]: did } as any;
     }
 
+    /**
+     * Takes a url and attempts to resolve it into
+     * a ComponentDef.
+     * 
+     * @param did 
+     * @returns 
+     */
     resolveComponentDefAttribute(did: string): [BitField, string] {
 
         let attrName: string;
@@ -430,6 +460,7 @@ export abstract class EntitySet {
         // Log.debug('[resolveComponentDefAttribute]', def, attrName );
         return [bf, prop ? attrName : undefined];
     }
+
 
 
     /**
@@ -463,6 +494,7 @@ export abstract class EntitySet {
                 bfSet(bf, getDefId(def)), 
         bf);
     }
+
 
     /**
      * Resolves a def url to its Did

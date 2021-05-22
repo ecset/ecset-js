@@ -520,6 +520,13 @@ import {
     }
 
 
+    /**
+     * Takes an array of Components and assigns Entity ids to
+     * those which dont have one
+     * 
+     * @param components 
+     * @returns 
+     */
     assignEntityIds(components: Component[]): Component[] {
         let coms = [];
         let eids = new Set();
@@ -567,6 +574,12 @@ import {
     }
 
 
+    /**
+     * 
+     * @param com 
+     * @param options 
+     * @returns 
+     */
     async markComponentAdd(com: Component, options:AddOptions={}): Promise<EntitySet> {
         const debug = options.debug ?? false;
         // adds the component to the entityset if it is unknown,

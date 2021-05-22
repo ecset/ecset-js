@@ -117,20 +117,53 @@ test('adds unqualified components from an entity', async () => {
     // Log.debug( es );
 });
 
+
 test('adds a component', async () => {
     let [es] = await buildEntitySet();
     let com = es.createComponent('/component/channel', {name: 'chat'} );
+    let evtAdded = false;
+    let evtUpdated = false;
+
+    es.on('/component/add', (...args) => {
+        evtAdded = true;
+    });
+    
+    es.on('/component/upd', (...args) => {
+        evtUpdated = true;
+    });
 
     await es.add( com );
 
     assert.equal( await es.size(), 1 );
 
+    assert.ok( evtAdded );
+    assert.ok( evtUpdated === false );
+
     const cid = getChanges( es.comChanges, ChangeSetOp.Add )[0];
 
     com = await es.getComponent( cid );
-    // Log.debug('es', com);
-
+    
     assert.equal( com.name, 'chat' );
+
+    // change component value
+    evtAdded = false;
+    evtUpdated = false;
+    com = {...com, name:'business'};
+
+    await es.add(com);
+
+    assert.ok( evtAdded === false );
+    assert.ok( evtUpdated );
+    
+    // update with same value
+    evtAdded = false;
+    evtUpdated = false;
+    com = {...com, name:'business'};
+    
+    await es.add(com);
+    
+    assert.ok( evtAdded === false );
+    assert.ok( evtUpdated === false );
 });
 
 

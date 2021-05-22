@@ -9,32 +9,33 @@ import {
     toValues as bfToValues,
     isBitField
 } from "@odgn/utils/bitfield";
-import { Component, 
-    ComponentId, 
-    fromComponentId, 
-    getComponentDefId, 
-    getComponentEntityId, 
-    getComponentId, 
-    isComponent, 
-    isComponentId, 
-    toComponentId, 
+import {
+    Component,
+    ComponentId,
+    fromComponentId,
+    getComponentDefId,
+    getComponentEntityId,
+    getComponentId,
+    isComponent,
+    isComponentId,
+    toComponentId,
     setEntityId as setComponentEntityId,
-     } from "../component";
-import { 
-    ComponentDef, 
-    ComponentDefId, 
+} from "../component";
+import {
+    ComponentDef,
+    ComponentDefId,
     ComponentDefObj,
     create as createComponentDef,
     hash as hashComponentDef,
     Type as DefT
 } from "../component_def";
 import { MatchOptions } from "../constants";
-import { 
-    Entity, 
-    EntityId, 
-    getEntityId, 
+import {
+    Entity,
+    EntityId,
+    getEntityId,
     isEntity,
-     
+
 } from "../entity";
 import { AddOptions, CloneOptions, EntitySet, EntitySetOptions, RemoveEntityType, RemoveType } from "../entity_set";
 import {
@@ -50,12 +51,12 @@ import {
 /**
  * 
  */
- export class EntitySetMem extends EntitySet {
-    
+export class EntitySetMem extends EntitySet {
+
 
     components = new Map<ComponentId, Component>();
     entities = new Map<EntityId, BitField>();
-     
+
     type: string;
     isEntitySetMem!: boolean;
 
@@ -70,7 +71,7 @@ import {
      * 
      * @returns 
      */
-    getUrl(): string{
+    getUrl(): string {
         return `es://${this.type}/?uuid=${this.uuid}`;
     }
 
@@ -118,13 +119,13 @@ import {
         return this.entities.size;
     }
 
-    
+
 
 
     /**
      * Register a ComponentDef with this EntitySet
      */
-     async register(value: ComponentDef | ComponentDefObj | any): Promise<ComponentDef> {
+    async register(value: ComponentDef | ComponentDefObj | any): Promise<ComponentDef> {
 
         let did = this.componentDefs.length + 1;
 
@@ -159,7 +160,7 @@ import {
         return Promise.resolve(this.componentDefs);
     }
 
-    
+
 
     /**
      * 
@@ -266,7 +267,7 @@ import {
     }
 
 
-    
+
 
     /**
      * 
@@ -317,7 +318,7 @@ import {
      * @param populate 
      * @returns 
      */
-    async getEntity(eid: EntityId, populate: BitField|boolean = true): Promise<Entity> {
+    async getEntity(eid: EntityId, populate: BitField | boolean = true): Promise<Entity> {
         return this.getEntityMem(eid, populate);
     }
 
@@ -326,7 +327,7 @@ import {
      * @param eid 
      * @param populate 
      */
-    getEntityMem(eid: EntityId, populate: BitField|boolean = true): Entity {
+    getEntityMem(eid: EntityId, populate: BitField | boolean = true): Entity {
         let ebf = this.entities.get(eid);
         if (ebf === undefined) {
             return undefined;
@@ -337,8 +338,8 @@ import {
             return e;
         }
 
-        const dids = bfToValues( isBitField(populate) ? (populate as BitField) : ebf );
-        
+        const dids = bfToValues(isBitField(populate) ? (populate as BitField) : ebf);
+
         for (const did of dids) {
             const com = this.components.get(toComponentId(eid, did));
 
@@ -387,21 +388,21 @@ import {
     //     return Promise.resolve( Array.from(this.entities.keys()) );
     // }
 
-    async * [Symbol.asyncIterator]() {
-        for( const eid of this.entities.keys() ){
+    async *[Symbol.asyncIterator]() {
+        for (const eid of this.entities.keys()) {
             yield eid;
         }
     }
 
     // abstract getEntities(populate?: BitField|boolean): AsyncGenerator<Entity, void, void>;
-    async *getEntities( populate:BitField|boolean = true): AsyncGenerator<Entity, void, void> {
-        for( const eid of this.entities.keys() ){
+    async *getEntities(populate: BitField | boolean = true): AsyncGenerator<Entity, void, void> {
+        for (const eid of this.entities.keys()) {
             yield await this.getEntity(eid, populate);
         }
     }
 
     async *getComponents(): AsyncGenerator<Component, void, void> {
-        for( const [cid, com] of this.components ){
+        for (const [cid, com] of this.components) {
             yield com;
         }
     }
@@ -491,7 +492,6 @@ import {
             record = this.entities.get(eid);
 
             if (record === undefined) {
-                // {mark_entity(es, :add, eid), Entity.ebf()}
                 this.markEntityAdd(eid);
                 return createBitField();
             }
@@ -580,7 +580,7 @@ import {
      * @param options 
      * @returns 
      */
-    async markComponentAdd(com: Component, options:AddOptions={}): Promise<EntitySet> {
+    async markComponentAdd(com: Component, options: AddOptions = {}): Promise<EntitySet> {
         const debug = options.debug ?? false;
         // adds the component to the entityset if it is unknown,
         // otherwise marks as an update
@@ -595,14 +595,26 @@ import {
             existing = await this.getComponent(cid);
         }
 
-        // console.log('[markComponentAdd]', cid, existing );
+        if( existing !== undefined ){
+            let isChanged = this.isComponentChanged(com, existing);
+
+            if( !isChanged ){
+                return this;
+            }
+        }
+
+
         this.comUpdates.set(cid, com);
 
         if (existing !== undefined) {
+            this.emit('/component/upd', com, existing);
             return this.markComponentUpdate(cid);
         }
+
+        this.emit('/component/add', com);
+
         this.comChanges = addCS(this.comChanges, cid);
-        // console.log('[markComponentAdd]', cid, this.comChanges );
+
         return this;
     }
 
@@ -614,13 +626,11 @@ import {
 
     markComponentRemove(cid: ComponentId) {
         this.comChanges = removeCS(this.comChanges, cid);
-        // console.log('[markComponentRemove]', cid);
         return this;
     }
 
     markEntityAdd(eid: number) {
         this.entChanges = addCS(this.entChanges, eid)
-        // Log.debug('[markEntityAdd]', eid);
         return this;
     }
     markEntityUpdate(eid: number) {
@@ -632,6 +642,22 @@ import {
     markEntityRemove(eid: number) {
         this.entChanges = removeCS(this.entChanges, eid);
         return this;
+    }
+
+    /**
+     * Compares two components and returns true if the
+     * components are different
+     * 
+     * @param a 
+     * @param b 
+     * @returns 
+     */
+    isComponentChanged(a: Component, b: Component): boolean {
+        if (this.componentCmp) {
+            return this.componentCmp(a, b);
+        }
+
+        return JSON.stringify(a) !== JSON.stringify(b);
     }
 
     /**
@@ -757,7 +783,7 @@ import {
 
     }
 
-    
+
 
 
     createEntityAlt(): EntityId {

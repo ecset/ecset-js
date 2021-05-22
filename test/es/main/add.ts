@@ -289,8 +289,6 @@ test('updates an entity', async () => {
 
     com = { ...com, topic: 'discussion' };
 
-    // Log.debug('🦄', 'updating here');
-
     await es.add(com);
 
     com = await es.getComponent(cid);

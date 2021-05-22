@@ -174,7 +174,7 @@ export class EntitySetMem extends EntitySet {
 
             for (const [eid, bf] of this.entUpdates) {
                 if (bf === undefined) {
-                    entities.delete(eid)
+                    entities.delete(eid);
                 } else {
                     entities.set(eid, bf);
                 }
@@ -595,10 +595,10 @@ export class EntitySetMem extends EntitySet {
             existing = await this.getComponent(cid);
         }
 
-        if( existing !== undefined ){
+        if (existing !== undefined) {
             let isChanged = this.isComponentChanged(com, existing);
 
-            if( !isChanged ){
+            if (!isChanged) {
                 return this;
             }
         }
@@ -629,18 +629,19 @@ export class EntitySetMem extends EntitySet {
         return this;
     }
 
-    markEntityAdd(eid: number) {
-        this.entChanges = addCS(this.entChanges, eid)
+    markEntityAdd(eid: EntityId) {
+        this.entChanges = addCS(this.entChanges, eid);
+        this.emit('/entity/add', eid);
         return this;
     }
-    markEntityUpdate(eid: number) {
+    markEntityUpdate(eid: EntityId) {
         this.entChanges = updateCS(this.entChanges, eid);
-        // Log.debug('[markEntityUpdate]', eid);
-        // throw new Error('do not update');
+        this.emit('/entity/upd', eid);
         return this;
     }
-    markEntityRemove(eid: number) {
+    markEntityRemove(eid: EntityId) {
         this.entChanges = removeCS(this.entChanges, eid);
+        this.emit('/entity/rem', eid);
         return this;
     }
 
@@ -657,6 +658,7 @@ export class EntitySetMem extends EntitySet {
             return this.componentCmp(a, b);
         }
 
+        // obviously problematic, but suffices for simple cases
         return JSON.stringify(a) !== JSON.stringify(b);
     }
 

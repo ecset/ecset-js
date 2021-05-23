@@ -62,9 +62,8 @@ export interface QueryableEntitySetMem extends QueryableEntitySet, EntitySetMem 
 
 export class QueryableEntitySetMem extends EntitySetMem {
 
-    // constructor(data?: EntitySet, options: EntitySetOptions = {}) {
-    //     super(undefined, options);
-    // }
+    stack: QueryStack;
+
 
     /**
      * 

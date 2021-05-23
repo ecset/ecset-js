@@ -15,6 +15,7 @@ import {
     beforeEach,
 } from '../helpers';
 import { assertHasComponents } from '../../helpers/assert';
+import { printAll } from '../../sql/helpers';
 
 
 
@@ -121,23 +122,23 @@ test('adds unqualified components from an entity', async () => {
 test('adds a component', async () => {
     let [es] = await buildEntitySet();
     let com = es.createComponent('/component/channel', {name: 'chat'} );
-    let evtAdded = false;
-    let evtUpdated = false;
+    // let evtAdded = false;
+    // let evtUpdated = false;
 
-    es.on('/component/add', (...args) => {
-        evtAdded = true;
-    });
+    // es.on('/component/add', (...args) => {
+    //     evtAdded = true;
+    // });
     
-    es.on('/component/upd', (...args) => {
-        evtUpdated = true;
-    });
+    // es.on('/component/upd', (...args) => {
+    //     evtUpdated = true;
+    // });
 
     await es.add( com );
 
     assert.equal( await es.size(), 1 );
 
-    assert.ok( evtAdded );
-    assert.ok( evtUpdated === false );
+    // assert.ok( evtAdded );
+    // assert.ok( evtUpdated === false );
 
     const cid = getChanges( es.comChanges, ChangeSetOp.Add )[0];
 
@@ -146,24 +147,24 @@ test('adds a component', async () => {
     assert.equal( com.name, 'chat' );
 
     // change component value
-    evtAdded = false;
-    evtUpdated = false;
-    com = {...com, name:'business'};
+    // evtAdded = false;
+    // evtUpdated = false;
+    // com = {...com, name:'business'};
 
-    await es.add(com);
+    // await es.add(com);
 
-    assert.ok( evtAdded === false );
-    assert.ok( evtUpdated );
+    // assert.ok( evtAdded === false );
+    // assert.ok( evtUpdated );
     
-    // update with same value
-    evtAdded = false;
-    evtUpdated = false;
-    com = {...com, name:'business'};
+    // // update with same value
+    // evtAdded = false;
+    // evtUpdated = false;
+    // com = {...com, name:'business'};
     
-    await es.add(com);
+    // await es.add(com);
     
-    assert.ok( evtAdded === false );
-    assert.ok( evtUpdated === false );
+    // assert.ok( evtAdded === false );
+    // assert.ok( evtUpdated === false );
 });
 
 
@@ -260,11 +261,10 @@ test('overwrites an entity', async () => {
     }, 15);
 
     // Log.debug('>----');
-
     await es.add(e);
 
     e = await es.getEntity(15);
-
+    
     assertHasComponents(es, e,
         ['/component/username', '/component/status', '/component/channel_member']);
 

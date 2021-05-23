@@ -594,18 +594,19 @@ export class EntitySetMem extends EntitySet {
             // hit the store
             existing = await this.getComponent(cid);
         }
-
-        if (existing !== undefined) {
-            let isChanged = this.isComponentChanged(com, existing);
-
-            if (!isChanged) {
-                return this;
-            }
-        }
-
-
+        
+        // if (existing !== undefined) {
+            // TODO - this breaks updates - come back and investigate
+            // let isChanged = this.isComponentChanged(com, existing);
+            
+            // console.log('[markComponentAdd]', {isChanged}, com, existing );
+            // if (!isChanged) {
+            //     return this;
+            // }
+        // }
+        
         this.comUpdates.set(cid, com);
-
+        
         if (existing !== undefined) {
             this.emit('/component/upd', com, existing);
             return this.markComponentUpdate(cid);

@@ -1,27 +1,27 @@
-import { QueryStack } from "..";
+import { QueryStack } from '..';
 import { isBoolean } from '@odgn/utils';
-import { AsyncInstResult, InstResult, StackError, StackValue, SType } from "../types";
+import { AsyncInstResult, InstResult, StackError, StackValue, SType } from '../types';
 
-
-
-
-
-
-export function compareDates( op:string, dateA:Date, dateB:Date ){
+export function compareDates(op: string, dateA: Date, dateB: Date) {
     const timeA = dateA.getTime();
     const timeB = dateB.getTime();
-    switch(op){
-        case '==': return timeA === timeB;
-        case '!=': return timeA !== timeB;
-        case '>': return timeA > timeB;
-        case '>=': return timeA >= timeB;
-        case '<': return timeA < timeB;
-        case '<=': return timeA <= timeB;
+    switch (op) {
+        case '==':
+            return timeA === timeB;
+        case '!=':
+            return timeA !== timeB;
+        case '>':
+            return timeA > timeB;
+        case '>=':
+            return timeA >= timeB;
+        case '<':
+            return timeA < timeB;
+        case '<=':
+            return timeA <= timeB;
         default:
             return false;
     }
 }
-
 
 export function isTruthy(value: StackValue): boolean {
     const [type, val] = value;
@@ -43,8 +43,6 @@ export function compareValues(left: StackValue, right: StackValue): boolean {
     }
     return true;
 }
-
-
 
 export function onArgError(stack: QueryStack, val: StackValue): InstResult {
     throw new StackError('invalid argument');

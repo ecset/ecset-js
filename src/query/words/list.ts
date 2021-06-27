@@ -1,23 +1,23 @@
-import { onUnexpectedError } from ".";
-import { QueryStack } from "..";
-import { isEqual, isInteger } from "@odgn/utils";
-import { AsyncInstResult, InstResult, StackError, StackValue, SType } from "../types";
-import { unpackStackValue, unpackStackValueR } from "../util";
-import { onMapOpen } from "./map";
-import { isTruthy } from "./util";
-
-
-
+import { onUnexpectedError } from '.';
+import { QueryStack } from '..';
+import { isEqual, isInteger } from '@odgn/utils';
+import { AsyncInstResult, InstResult, StackError, StackValue, SType } from '../types';
+import { unpackStackValue, unpackStackValueR } from '../util';
+import { onMapOpen } from './map';
+import { isTruthy } from './util';
 
 export function onListOpen(stack: QueryStack): InstResult {
-    let sub = stack.setChild();
+    const sub = stack.setChild();
 
-    sub.addWords([
-        ['{', onMapOpen],
-        ['[', onListOpen],
-        [']', onListClose],
-        ['}', onUnexpectedError],
-    ], true);
+    sub.addWords(
+        [
+            ['{', onMapOpen],
+            ['[', onListOpen],
+            [']', onListClose],
+            ['}', onUnexpectedError],
+        ],
+        true,
+    );
     sub.isUDWordsActive = false;
     sub.isEscapeActive = false;
     // Log.debug('[onListOpen]', 'stack', stack._idx, stack.isUDWordsActive, 'sub', sub._idx, sub.isUDWordsActive );
@@ -27,33 +27,31 @@ export function onListOpen(stack: QueryStack): InstResult {
 
 export function onListClose<QS extends QueryStack>(stack: QS): InstResult {
     // Log.debug('[onListClose]', stack );
-    let val: StackValue = [SType.List, stack.items];
+    const val: StackValue = [SType.List, stack.items];
     stack.restoreParent();
     return val;
 }
 
 export function onListFetch<QS extends QueryStack>(stack: QS, val: StackValue): InstResult {
-    let left = stack.pop();
-    let right = stack.pop();
-    let arr = unpackStackValue(right, SType.List);
-    let idx = unpackStackValue(left, SType.Value);
+    const left = stack.pop();
+    const right = stack.pop();
+    const arr = unpackStackValue(right, SType.List);
+    const idx = unpackStackValue(left, SType.Value);
     return isInteger(idx) ? arr[idx] : [SType.Value, false];
 }
 
-
 /**
- * 
- * @param stack 
- * @param val 
+ *
+ * @param stack
+ * @param val
  */
 export function onAddList<QS extends QueryStack>(stack: QS, val: StackValue): InstResult {
-
-    let left = stack.pop();
-    let right = stack.pop();
+    const left = stack.pop();
+    const right = stack.pop();
 
     // let arr = right[0] === SType.List
-    let [ltype, lval] = left;
-    let [rtype, rval] = right;
+    const [ltype, lval] = left;
+    const [rtype, rval] = right;
     let result = rval;
     // let resultType = rtype;
 
@@ -73,38 +71,35 @@ export function onAddList<QS extends QueryStack>(stack: QS, val: StackValue): In
     return [SType.List, result];
 }
 
-
-
 export async function onListSpread<QS extends QueryStack>(stack: QS): AsyncInstResult {
-    let val = stack.pop();
-    let value = unpackStackValueR(val, SType.List).map(v => [SType.Value, v]);
+    const val = stack.pop();
+    const value = unpackStackValueR(val, SType.List).map((v) => [SType.Value, v]);
 
     // Log.debug('[onArraySpread]', value);
     await stack.pushValues(value);
     return undefined;
 }
 
-
 /**
  * By default, values in a list are not evaluated against defined words
  * this function takes a list and allows each value to be evaluated
- * 
- * @param stack 
+ *
+ * @param stack
  */
 export async function onListEval<QS extends QueryStack>(stack: QS): AsyncInstResult {
-    let val = stack.pop();
-    let list = unpackStackValue(val, SType.List);
+    const val = stack.pop();
+    const list = unpackStackValue(val, SType.List);
 
     return evalList(stack, list);
 }
 
 /**
- * 
- * @param stack 
- * @param list 
+ *
+ * @param stack
+ * @param list
  */
 export async function evalList<QS extends QueryStack>(stack: QS, list: StackValue[]): AsyncInstResult {
-    let mapStack = stack.setChild(stack);
+    const mapStack = stack.setChild(stack);
 
     await mapStack.pushValues(list);
     // for (const val of list) {
@@ -112,28 +107,26 @@ export async function evalList<QS extends QueryStack>(stack: QS, list: StackValu
     //     await mapStack.push(val);
     // }
 
-    let result = mapStack.items;
+    const result = mapStack.items;
     stack.restoreParent();
 
     return [SType.List, result];
 }
 
-
-
 /**
- * Creates an array from the values on the stack, providing they are of the 
+ * Creates an array from the values on the stack, providing they are of the
  * same type
- * 
- * @param stack 
- * @param val 
+ *
+ * @param stack
+ * @param val
  */
- export function onGather<QS extends QueryStack>(stack: QS, val: StackValue): InstResult {
+export function onGather<QS extends QueryStack>(stack: QS, val: StackValue): InstResult {
     let values: StackValue[];
-    let first = stack.pop();
-    let type: SType = first[0];
+    const first = stack.pop();
+    const type: SType = first[0];
 
     values = stack.popOfType(type);
-    
+
     values = [...values.reverse(), first];
 
     return [SType.List, values];
@@ -141,22 +134,20 @@ export async function evalList<QS extends QueryStack>(stack: QS, list: StackValu
 
 /**
  * Concats list values, or a value to a list
- * @param stack 
- * @param val 
+ * @param stack
+ * @param val
  */
 export function onConcat<QS extends QueryStack>(stack: QS, val: StackValue): InstResult {
-    let a = stack.pop();
+    const a = stack.pop();
     let b = stack.pop();
 
     // Log.debug('[onConcat]', 'a:', a[0], 'b:', b );
     b = b[0] !== SType.List ? [b] : b[1];
 
-    let values = [].concat(b, a[1]);
+    const values = [].concat(b, a[1]);
 
     return [SType.List, values];
 }
-
-
 
 export async function onFilter<QS extends QueryStack>(stack: QS): AsyncInstResult {
     let fn: StackValue = stack.pop();
@@ -166,7 +157,7 @@ export async function onFilter<QS extends QueryStack>(stack: QS): AsyncInstResul
     const isListFn = fn[0] === SType.List;
     fn = unpackStackValue(fn);
 
-    let mapStack = stack.setChild(stack);
+    const mapStack = stack.setChild(stack);
     let accum = [];
 
     for (const val of list) {
@@ -178,7 +169,7 @@ export async function onFilter<QS extends QueryStack>(stack: QS): AsyncInstResul
         }
 
         // Log.debug('[onFilter]', 'end', mapStack.items );
-        let out = mapStack.pop();
+        const out = mapStack.pop();
         if (isTruthy(out)) {
             accum = [...accum, val];
         }
@@ -190,17 +181,17 @@ export async function onFilter<QS extends QueryStack>(stack: QS): AsyncInstResul
 }
 
 export async function onMap<QS extends QueryStack>(stack: QS): AsyncInstResult {
-    let right = stack.pop();
-    let left = stack.pop();
+    const right = stack.pop();
+    const left = stack.pop();
 
-    let list = unpackStackValue(left, SType.List);
+    const list = unpackStackValue(left, SType.List);
     const isListFn = right[0] === SType.List;
-    let fn = unpackStackValue(right);
+    const fn = unpackStackValue(right);
 
     // console.log('[onMap]', 'list', list);
     // console.log('[onMap]', 'fn', fn);
 
-    let mapStack = stack.setChild(stack);
+    const mapStack = stack.setChild(stack);
 
     for (const val of list) {
         // console.log('[onMap]', 'li', val);
@@ -212,23 +203,22 @@ export async function onMap<QS extends QueryStack>(stack: QS): AsyncInstResult {
         }
     }
 
-    let result = mapStack.items;
+    const result = mapStack.items;
     stack.restoreParent();
 
     return [SType.List, result];
 }
 
 export async function onReduce<QS extends QueryStack>(stack: QS): AsyncInstResult {
-
-    let right = stack.pop();
+    const right = stack.pop();
     let accum = stack.pop();
-    let left = stack.pop();
+    const left = stack.pop();
 
-    let list = unpackStackValue(left, SType.List);
+    const list = unpackStackValue(left, SType.List);
     const isListFn = right[0] === SType.List;
-    let fn = unpackStackValue(right);
+    const fn = unpackStackValue(right);
 
-    let mapStack = stack.setChild(stack);
+    const mapStack = stack.setChild(stack);
 
     for (const val of list) {
         await mapStack.push(val);
@@ -246,81 +236,73 @@ export async function onReduce<QS extends QueryStack>(stack: QS): AsyncInstResul
     return accum;
 }
 
-
 /**
  * ( %[] -- %[] )
- * @param stack 
+ * @param stack
  */
 export function onUnique<QS extends QueryStack>(stack: QS): InstResult {
-    let val = stack.pop();
-    let array = unpackStackValueR(val, SType.List);
-    return [SType.List, [...new Set([...array].sort())].map(v => [SType.Value, v])];
+    const val = stack.pop();
+    const array = unpackStackValueR(val, SType.List);
+    return [SType.List, [...new Set([...array].sort())].map((v) => [SType.Value, v])];
 }
 
-
-
-
 /**
- * 
- * @param stack 
- * @param param1 
+ *
+ * @param stack
+ * @param param1
  */
-export function onDiff(stack: QueryStack, [,op]:StackValue): InstResult {
+export function onDiff(stack: QueryStack, [, op]: StackValue): InstResult {
     const isDiff = op === 'diff' || op === 'diff!';
     const isInter = op === 'intersect' || op === 'intersect!';
     const isUnion = op === 'union' || op === 'union!';
     const isDes = op.endsWith('!');
 
-    let left = isDes ? stack.pop() : stack.peek();
-    let right = isDes ? stack.pop() : stack.peek(1);
+    const left = isDes ? stack.pop() : stack.peek();
+    const right = isDes ? stack.pop() : stack.peek(1);
 
-    let ta = left[0];
-    let tb = right[0];
-    let a = unpackStackValue(left, [SType.List, SType.Map, SType.Component, SType.Entity]);
-    let b = unpackStackValue(right, [SType.List, SType.Map, SType.Component, SType.Entity]);
+    const ta = left[0];
+    const tb = right[0];
+    const a = unpackStackValue(left, [SType.List, SType.Map, SType.Component, SType.Entity]);
+    const b = unpackStackValue(right, [SType.List, SType.Map, SType.Component, SType.Entity]);
 
-    if( tb !== tb ){
+    if (tb !== tb) {
         throw new StackError(`incompatible types ${tb} ${tb}`);
     }
-    
+
     let out;
 
-    if( ta === SType.List ){
-        if( isDiff || isInter ){
-            out = a.filter(x => {
-                let idx = b.findIndex( e => isEqual(e,x));
+    if (ta === SType.List) {
+        if (isDiff || isInter) {
+            out = a.filter((x) => {
+                const idx = b.findIndex((e) => isEqual(e, x));
                 return isDiff ? idx === -1 : idx !== -1;
             });
             // return isDiff ? !eq : eq;
-        } 
-        else if( isUnion ){
-            out = [ ...b ];
-            for( let ii=0;ii<a.length;ii++ ){
-                if( out.findIndex( e => isEqual(e, a[ii] )) === -1 ){
-                    out.push( a[ii] );
+        } else if (isUnion) {
+            out = [...b];
+            for (let ii = 0; ii < a.length; ii++) {
+                if (out.findIndex((e) => isEqual(e, a[ii])) === -1) {
+                    out.push(a[ii]);
                 }
             }
         }
-    }
-    else {
+    } else {
         out = [];
     }
-
 
     return [SType.List, out];
 }
 
-
-export function onListIndexOf( stack:QueryStack, [,op]:StackValue): InstResult {
+export function onListIndexOf(stack: QueryStack, [, op]: StackValue): InstResult {
     const isDes = op.endsWith('!');
-    let left = stack.pop();
-    let right = isDes ? stack.pop() : stack.peek();
-    let arr = unpackStackValue(right, SType.List);
-    let idx = left;
+    const left = stack.pop();
+    const right = isDes ? stack.pop() : stack.peek();
+    const arr = unpackStackValue(right, SType.List);
+    const idx = left;
 
-    let result = arr.findIndex( ([at,av]) => {
+    const result = arr.findIndex(([at, av]) => {
         return at === idx[0] && av === idx[1];
-    })
+    });
 
     // console.log('[onListIndexOf]', arr, idx, result );
     return [SType.Value, result];

@@ -1,6 +1,7 @@
 export { Entity } from './entity';
 export { Component } from './component';
 
-export { EntitySet, EntitySetMem } from './entity_set';
+export { EntitySet } from './entity_set';
+export { EntitySetMem } from './entity_set_mem';
 
-export { createStdLibStack, query } from './query'
+export { createStdLibStack, query } from './query';

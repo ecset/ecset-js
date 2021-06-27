@@ -1,35 +1,26 @@
 import { suite } from 'uvu';
 import assert from 'uvu/assert';
 
-import {
-    AsyncInstResult,
-    isComponentDef,
-    parse,
-    prep,
-    QueryStack,
-    StackValue,
-    sv,
-} from '../helpers';
+import { AsyncInstResult, isComponentDef, parse, prep, QueryStack, StackValue, sv } from '../helpers';
 
-
-let test = suite('es/mem/query - Execution control');
+const test = suite('es/mem/query - Execution control');
 
 test('stops stack execution', async () => {
-    let [stack] = await prep(`1 2 3 @! 4`);
+    const [stack] = await prep(`1 2 3 @! 4`);
 
-    let result = stack.popValue();
+    const result = stack.popValue();
     assert.equal(result, 3);
 });
 
 test('stops and restarts stack execution', async () => {
-    let [stack] = await prep(`1 2 3 @! 4 5 @> 6 7`);
+    const [stack] = await prep(`1 2 3 @! 4 5 @> 6 7`);
 
     // let result = stack.popValue();
-    assert.equal( stack.toString(), '7 6 3 2 1');
+    assert.equal(stack.toString(), '7 6 3 2 1');
 });
 
 test('stops and restarts stack execution 2', async () => {
-    let [stack] = await prep(`
+    const [stack] = await prep(`
         1 2 3 
         [ @! ] 1 1 == if
         4 5 
@@ -38,13 +29,11 @@ test('stops and restarts stack execution 2', async () => {
     `);
 
     // let result = stack.popValue();
-    assert.equal( stack.toString(), '7 6 3 2 1');
+    assert.equal(stack.toString(), '7 6 3 2 1');
 });
 
-
-
 test('stops execution from if', async () => {
-    let [stack] = await prep(`
+    const [stack] = await prep(`
     []
     [ ok @! ] swap size! 0 == if
     failed
@@ -53,12 +42,12 @@ test('stops execution from if', async () => {
 });
 
 test('stops list execution', async () => {
-    let [stack] = await prep(`[1 2 3 @! 4 @>] spread 5`);
+    const [stack] = await prep(`[1 2 3 @! 4 @>] spread 5`);
     assert.equal(stack.toString(), '5 3 2 1');
 });
 
 test('stops defined list execution', async () => {
-    let [stack] = await prep(`
+    const [stack] = await prep(`
     [1 2 3 @! 4 ] theList define 
     [
         [ theList @! ] true if
@@ -72,13 +61,12 @@ test('stops defined list execution', async () => {
     answer
     done
     `);
-    
+
     assert.equal(stack.toString(), 'done 3 2 1');
 });
 
-
 test('stops loop execution', async () => {
-    let [stack] = await prep(`
+    const [stack] = await prep(`
 
     // increment up to 15
     10
@@ -91,13 +79,11 @@ test('stops loop execution', async () => {
     // the loop will automatically continue after any break
     100 +
     `);
-    assert.equal( stack.popValue(), 115 );
+    assert.equal(stack.popValue(), 115);
 });
 
-
-
 test('break function', async () => {
-    let [stack] = await prep(`
+    const [stack] = await prep(`
     // only returns false if the value is not even
     [
         [ true @! ] swap 2 % 0 == if
@@ -111,12 +97,11 @@ test('break function', async () => {
     2 isNotEven
     `);
 
-    assert.equal( stack.toString(), 'true false false true' );
-})
-
+    assert.equal(stack.toString(), 'true false false true');
+});
 
 test('defined break', async () => {
-    let [stack] = await prep(`
+    const [stack] = await prep(`
     [
         [ true @! ] swap 2 % 0 == if
         false
@@ -128,11 +113,11 @@ test('defined break', async () => {
     4 isEven
     `);
 
-    assert.equal( stack.toString(), 'true false true' );
+    assert.equal(stack.toString(), 'true false true');
 });
 
 test('inner function break', async () => {
-    let [stack] = await prep(`
+    const [stack] = await prep(`
     // [ nothing ] theVoid define
 
     // TODO - defines must return the break
@@ -155,8 +140,7 @@ test('inner function break', async () => {
     `);
 
     // console.log( stack.items );
-    assert.equal( stack.toString(), 'hello nothing' );
-})
-
+    assert.equal(stack.toString(), 'hello nothing');
+});
 
 test.run();

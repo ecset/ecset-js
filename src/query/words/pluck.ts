@@ -1,37 +1,34 @@
-import { SType, StackError, AsyncInstResult, StackValue, InstResult } from "../types";
-import { unpackStackValue, unpackStackValueR, stackToString } from "../util";
+import { SType, StackError, AsyncInstResult, StackValue, InstResult } from '../types';
+import { unpackStackValue, unpackStackValueR, stackToString } from '../util';
 import { toCapitalized } from '@odgn/utils';
 import { isObject } from '@odgn/utils';
-import { isStackValue, QueryStack } from "../stack";
+import { isStackValue, QueryStack } from '../stack';
 import Jsonpointer from 'jsonpointer';
-import { isComponent } from "../../component";
-import { Entity, isEntity } from "../../entity";
+import { isComponent } from '../../component';
+import { Entity, isEntity } from '../../entity';
 
-
-export function onPluck(stack: QueryStack, [,op]:StackValue): InstResult {
-
+export function onPluck(stack: QueryStack, [, op]: StackValue): InstResult {
     // console.log('[onPluck]', stackToString(stack) );
     const isDes = op === 'pluck!';
 
-    let right = stack.pop();
+    const right = stack.pop();
     // let left = stack.pop();
-    let left = isDes ? stack.pop() : stack.peek();
+    const left = isDes ? stack.pop() : stack.peek();
 
-    let key = unpackStackValueR(right, SType.Any);
+    const key = unpackStackValueR(right, SType.Any);
     let list = unpackStackValue(left, [SType.List, SType.Map, SType.Component, SType.Entity]);
 
-    let isInputArray = !isObject(list);
+    const isInputArray = !isObject(list);
     if (isObject(list)) {
         list = [[SType.Map, list]];
     }
 
     // console.log('[onPluck]', { key }, { list });
 
-    let out: any[] = [];
+    const out: any[] = [];
     if (Array.isArray(key)) {
-
         for (const it of list) {
-            let obj = unpackStackValue(it);
+            const obj = unpackStackValue(it);
 
             if (!isObject(obj)) {
                 throw new StackError(`expected map, got ${it[0]}`);
@@ -39,31 +36,28 @@ export function onPluck(stack: QueryStack, [,op]:StackValue): InstResult {
 
             // console.log('[onPluck]', 'well', key, obj);
 
-            let result = [];
+            const result = [];
 
-            for( let ii=0;ii<key.length;ii++ ){
-                let val = getStackValue(obj,key[ii]);
+            for (let ii = 0; ii < key.length; ii++) {
+                const val = getStackValue(obj, key[ii]);
                 result[ii] = val;
             }
-            
+
             out.push([SType.List, result]);
         }
-    }
-    else {
-
-
+    } else {
         for (const it of list) {
-            let obj = unpackStackValue(it);
+            const obj = unpackStackValue(it);
             if (!isObject(obj)) {
                 throw new StackError(`expected map, got ${it[0]}`);
             }
-            let val = getStackValue(obj,key);
-            
+            const val = getStackValue(obj, key);
+
             out.push(val);
         }
-
     }
-    if (out.length === 1 && !isInputArray){// !Array.isArray(key)) {
+    if (out.length === 1 && !isInputArray) {
+        // !Array.isArray(key)) {
         return out[0];
     }
 
@@ -72,60 +66,59 @@ export function onPluck(stack: QueryStack, [,op]:StackValue): InstResult {
 }
 
 function getStackValue(obj: any, key: string) {
-    let val:any;
+    let val: any;
 
-    if( isEntity(obj) ){
-        val = getEntityComponent( obj, key );
+    if (isEntity(obj)) {
+        val = getEntityComponent(obj, key);
         // console.log('[onPluck]', 'get entity', key, val );
     } else {
         val = Jsonpointer.get(obj, key);
     }
 
-
     // console.log('[onPluck]', 'get', key, val );
-    if (isStackValue(val)) { return val; }
+    if (isStackValue(val)) {
+        return val;
+    }
 
     if (isComponent(val)) {
         return [SType.Component, val];
     } else if (isEntity(val)) {
         return [SType.Entity, val];
     }
-    
+
     return [SType.Value, val];
 }
-
 
 /**
  * Returns an entity component or component attribute
  * using a JSON pointer
- * @param e 
- * @param ptr 
+ * @param e
+ * @param ptr
  */
-function getEntityComponent( e:Entity, ptr:string ){
-    let match = /(^\/component\/(.*))#(.*)/.exec(ptr);
+function getEntityComponent(e: Entity, ptr: string) {
+    const match = /(^\/component\/(.*))#(.*)/.exec(ptr);
 
-    if( match == null ){
+    if (match == null) {
         return Jsonpointer.get(e, ptr);
     }
 
-    let [,,comPtr,attrPtr] = match;
+    let [, , comPtr, attrPtr] = match;
 
     // NOTE - we are relying on the entity/com def name
     // lookup so we dont have to resolve to a did
-    const com = e[ toCapitalized(comPtr) ];
+    const com = e[toCapitalized(comPtr)];
 
-    if( com === undefined ){
+    if (com === undefined) {
         // console.log('[getEntityComponent]', com, toCapitalized(comPtr), e );
         return undefined;
     }
 
     // normalise
-    if( !attrPtr.startsWith('/') ){
+    if (!attrPtr.startsWith('/')) {
         attrPtr = '/' + attrPtr;
     }
 
     // console.log('[getEntityComponent]', attrPtr, com );
     return Jsonpointer.get(com, attrPtr);
     // const [ comPtr, attrPtr ] = ptr.split('#');
-
 }

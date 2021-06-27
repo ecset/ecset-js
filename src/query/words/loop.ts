@@ -1,36 +1,39 @@
-import { StackValue, InstResult, AsyncInstResult, SType, StackError } from "../types";
-import { QueryStack } from "../stack";
-import { unpackStackValue, unpackStackValueR } from "../util";
+import { StackValue, InstResult, AsyncInstResult, SType, StackError } from '../types';
+import { QueryStack } from '../stack';
+import { unpackStackValue, unpackStackValueR } from '../util';
 
 const LOOP_OOC = 1000;
 
-
-export async function onDo(stack: QueryStack, [,op]: StackValue): AsyncInstResult {
+export async function onDo(stack: QueryStack, [, op]: StackValue): AsyncInstResult {
     const isSame = op === '?do';
-    let start = stack.popValue();
-    let end = stack.popValue();
-    let expr = unpackStackValue(stack.pop(), SType.List);
-    return evalLoop(stack, expr, false, start, end + (isSame ? 0 : 1) );
+    const start = stack.popValue();
+    const end = stack.popValue();
+    const expr = unpackStackValue(stack.pop(), SType.List);
+    return evalLoop(stack, expr, false, start, end + (isSame ? 0 : 1));
 }
 
 /**
- * 
- * @param stack 
- * @param param1 
+ *
+ * @param stack
+ * @param param1
  */
 export async function onLoop(stack: QueryStack, [, op]: StackValue): AsyncInstResult {
-    let expr = unpackStackValue(stack.pop(), SType.List);
+    const expr = unpackStackValue(stack.pop(), SType.List);
     return evalLoop(stack, expr);
-};
+}
 
-async function evalLoop(stack: QueryStack, expr: StackValue[], exitOnNonTrue: boolean = true, start: number = 0, end: number = LOOP_OOC) {
+async function evalLoop(
+    stack: QueryStack,
+    expr: StackValue[],
+    exitOnNonTrue = true,
+    start = 0,
+    end: number = LOOP_OOC,
+) {
     let count = start;
     let isLooping = true;
     let result: StackValue = undefined;
     const wasActive = stack.isActive;
 
-
-    
     while (count < end && isLooping) {
         stack.addUDWord('i', [SType.Value, count]);
 
@@ -60,7 +63,7 @@ async function evalLoop(stack: QueryStack, expr: StackValue[], exitOnNonTrue: bo
         } else {
             isLooping = exitOnNonTrue ? result[1] === true : true;
         }
-        
+
         count++;
     }
 
@@ -70,6 +73,5 @@ async function evalLoop(stack: QueryStack, expr: StackValue[], exitOnNonTrue: bo
 
     return result;
 }
-
 
 const log = (...args) => console.log('[onLoop]', ...args);

@@ -1,5 +1,6 @@
 import {
-    ComponentId, Component,
+    ComponentId,
+    Component,
     create as createComponentInstance,
     setEntityId as setComponentEntityId,
     getComponentId,
@@ -9,8 +10,8 @@ import {
     getComponentEntityId,
     isComponent,
     toComponentId,
-    isComponentLike
-} from "../component";
+    isComponentLike,
+} from '../component';
 import {
     ComponentDef,
     ComponentDefObj,
@@ -18,16 +19,10 @@ import {
     toObject as defToObject,
     hash as hashDef,
     isComponentDef,
-    Type as ComponentDefT
+    Type as ComponentDefT,
 } from '../component_def';
 
-import {
-    Type as EntityT,
-    isEntity,
-    Entity,
-    getEntityId,
-    EntityId
-} from "../entity";
+import { Type as EntityT, isEntity, Entity, getEntityId, EntityId } from '../entity';
 import {
     ChangeSet,
     create as createChangeSet,
@@ -35,8 +30,10 @@ import {
     update as updateCS,
     find as findCS,
     merge as mergeCS,
-    remove as removeCS, ChangeSetOp, getChanges
-} from "../change_set";
+    remove as removeCS,
+    ChangeSetOp,
+    getChanges,
+} from '../change_set';
 import {
     BitField,
     create as createBitField,
@@ -46,47 +43,45 @@ import {
     and as bfAnd,
     or as bfOr,
     toValues as bfToValues,
-    isBitField
+    isBitField,
 } from '@odgn/utils/bitfield';
 import { createUUID, toBoolean } from '@odgn/utils';
 import {
     SqlRef,
-    sqlOpen, sqlIsOpen,
-    sqlInsertDef, sqlRetrieveDefByHash,
+    sqlOpen,
+    sqlIsOpen,
+    sqlInsertDef,
+    sqlRetrieveDefByHash,
     sqlRetrieveDefs,
-    getLastEntityId,
     sqlUpdateEntity,
     sqlRetrieveEntity,
     sqlRetrieveComponent,
     sqlUpdateComponent,
     sqlCount,
-    sqlDeleteComponent, sqlDeleteEntity,
+    sqlDeleteComponent,
+    sqlDeleteEntity,
     sqlRetrieveEntityComponents,
     sqlComponentExists,
     sqlGetEntities,
     sqlRetrieveComponentsByDef,
-    sqlBegin, 
+    sqlBegin,
     sqlCommit,
-    sqlClear
-} from "./sqlite";
-import { createLog } from "../util/log";
-import { select } from "./query";
-import { AddType, AddOptions, RemoveType, EntitySet, EntitySetOptions, CloneOptions } from "../entity_set";
-import { StackValue } from "../query/types";
-import { QueryStack } from "../query";
+    sqlClear,
+} from './sqlite';
+import { createLog } from '../util/log';
+import { select } from './query';
+import { AddType, AddOptions, RemoveType, EntitySet, EntitySetOptions, CloneOptions } from '../entity_set';
+import { StackValue } from '../query/types';
+import { QueryStack } from '../query';
 import { EntitySetMem } from '../entity_set_mem';
-import { QueryableEntitySetMem } from "../entity_set_mem/query";
+import { QueryableEntitySetMem } from '../entity_set_mem/query';
 import { QueryableEntitySet, SelectOptions } from '../entity_set/queryable';
 
-
 const Log = createLog('EntitySetSQL');
-
 
 export interface ComponentDefSQL extends ComponentDef {
     tblName?: string;
 }
-
-
 
 export interface SQLEntitySetOptions extends EntitySetOptions {
     path?: string;
@@ -101,18 +96,13 @@ export interface SQLCloneOptions extends CloneOptions {
     path?: string;
 }
 
-
-export interface EntitySetSQL extends EntitySetMem, QueryableEntitySet {};
-
-
-
+export interface EntitySetSQL extends EntitySetMem, QueryableEntitySet {}
 
 /**
  * As a storage backed ES, this entityset has functions
  * as a ComponentRegistry
  */
 export class EntitySetSQL extends QueryableEntitySetMem {
-
     // keep a reference to the open es db
     db?: SqlRef;
 
@@ -123,27 +113,27 @@ export class EntitySetSQL extends QueryableEntitySetMem {
     type!: string;
     isAsync!: boolean;
     isEntitySetSQL!: boolean;
-    
+
     constructor(options: SQLEntitySetOptions = {}) {
         super(undefined, options);
         this.isMemory = toBoolean(options.isMemory ?? false);
         this.isEntitySetMem = false;
         this.debug = options.debug ?? false;
 
-        if( options.path === undefined ){
+        if (options.path === undefined) {
             this.isMemory = true;
         } else {
             this.path = options.path;
         }
         this.db = options.db ?? undefined;
 
-        if( options.clearDb && this.isMemory === false ){
+        if (options.clearDb && this.isMemory === false) {
             sqlClear(this.path);
         }
     }
 
     getUrl() {
-        if( this.isMemory ){
+        if (this.isMemory) {
             return `es://sqlite/memory?uuid=${this.uuid}`;
         }
         const path = this.path.startsWith('/') ? this.path : '/' + this.path;
@@ -151,15 +141,15 @@ export class EntitySetSQL extends QueryableEntitySetMem {
     }
 
     async clone(options: SQLCloneOptions = {}) {
-        let includeDefs = options.cloneDefs ?? true;
-        let includeEnts = includeDefs ? options.cloneEntities ?? true : false;
+        const includeDefs = options.cloneDefs ?? true;
+        const includeEnts = includeDefs ? options.cloneEntities ?? true : false;
 
-        let { byUrl, byHash, entChanges, comChanges, idgen } = this;
+        const { byUrl, byHash, entChanges, comChanges, idgen } = this;
 
-        let path = options.path ?? this.path;
-        let isMemory = options.isMemory ?? this.isMemory;
+        const path = options.path ?? this.path;
+        const isMemory = options.isMemory ?? this.isMemory;
 
-        let props = {
+        const props = {
             idgen,
             isMemory,
             path,
@@ -168,26 +158,26 @@ export class EntitySetSQL extends QueryableEntitySetMem {
             byHash: new Map<number, number>(byHash),
             entChanges: createChangeSet(entChanges),
             comChanges: createChangeSet(comChanges),
-        }
+        };
 
         const clone = new EntitySetSQL(props as any);
 
         const defs = await this.getComponentDefs();
 
-        for( const def of defs ){
-            await clone.register( def );
+        for (const def of defs) {
+            await clone.register(def);
         }
 
         return clone;
     }
 
-    select(stack: QueryStack, query: StackValue[], options:SelectOptions): Promise<StackValue[]> {
+    select(stack: QueryStack, query: StackValue[], options: SelectOptions): Promise<StackValue[]> {
         stack.es = this as unknown as EntitySet;
         return select(stack, query, options);
     }
 
     // /**
-    //  * 
+    //  *
     //  */
     // *entityIds() {
     //     this.openEntitySet();
@@ -200,11 +190,11 @@ export class EntitySetSQL extends QueryableEntitySetMem {
 
     /**
      * Returns an iterate over all of the Entitys in the es
-     * @param populate 
+     * @param populate
      */
-    async *getEntities(populate: BitField|boolean = true): AsyncGenerator<Entity, void, void> {
+    async *getEntities(populate: BitField | boolean = true): AsyncGenerator<Entity, void, void> {
         this.openEntitySet();
-        let eids = sqlGetEntities(this.db);
+        const eids = sqlGetEntities(this.db);
 
         for (const eid of eids) {
             yield await this.getEntity(eid, populate);
@@ -224,11 +214,11 @@ export class EntitySetSQL extends QueryableEntitySetMem {
     /**
      * Returns an AsyncIterator for all of the entity ids
      * in the es
-     * 
+     *
      */
     async *[Symbol.asyncIterator]() {
         this.openEntitySet();
-        let eids = sqlGetEntities(this.db);
+        const eids = sqlGetEntities(this.db);
 
         for (const eid of eids) {
             yield eid;
@@ -243,14 +233,13 @@ export class EntitySetSQL extends QueryableEntitySetMem {
     //     return Promise.resolve(eids);
     // }
 
-
     async beginUpdates() {
         sqlBegin(this.db);
     }
 
     async applyUpdates() {
         // if (this.entUpdates.size > 0 || this.comUpdates.size > 0) {
-            sqlCommit(this.db);
+        sqlCommit(this.db);
         // }
     }
 
@@ -299,7 +288,7 @@ export class EntitySetSQL extends QueryableEntitySetMem {
             return this;
         }
 
-        let e = await this._getEntity(eid);
+        const e = await this._getEntity(eid);
         if (e === undefined) {
             return this;
         }
@@ -317,7 +306,6 @@ export class EntitySetSQL extends QueryableEntitySetMem {
 
         return this;
     }
-
 
     async applyRemoveChanges(): Promise<EntitySetSQL> {
         // applies any removal changes that have previously been marked
@@ -339,14 +327,14 @@ export class EntitySetSQL extends QueryableEntitySetMem {
     }
 
     async applyRemoveComponent(cid: ComponentId): Promise<EntitySetSQL> {
-        let [eid, did] = fromComponentId(cid);
+        const [eid, did] = fromComponentId(cid);
 
         const def = this.getByDefId(did);
         // remove component
         // let ee = sqlRetrieveEntity(this.db, eid);
         // Log.debug('[applyRemoveComponent]', eid, did, ee );
 
-        let e = sqlDeleteComponent(this.db, eid, def);
+        const e = sqlDeleteComponent(this.db, eid, def);
 
         if (e === undefined || bfCount(e.bitField) === 0) {
             return this.markEntityRemove(eid);
@@ -354,31 +342,28 @@ export class EntitySetSQL extends QueryableEntitySetMem {
 
         this.markEntityUpdate(eid);
 
-
         return this;
     }
 
     /**
      * Removes an entity from the store
-     * @param es 
-     * @param eid 
+     * @param es
+     * @param eid
      */
     async applyRemoveEntity(eid: number): Promise<EntitySetSQL> {
         sqlDeleteEntity(this.db, eid);
         return this;
     }
 
-
-
     /**
-     * 
-     * @param es 
-     * @param eid 
+     *
+     * @param es
+     * @param eid
      */
     async getOrAddEntityBitfield(eid: number): Promise<BitField> {
         // const store = es.db.transaction(STORE_ENTITIES, 'readonly').objectStore(STORE_ENTITIES);
 
-        let e = sqlRetrieveEntity(this.db, eid);
+        const e = sqlRetrieveEntity(this.db, eid);
 
         // Log.debug('[getOrAddEntityBitfield]', eid, e );
         // let record = await idbGet(store, eid);
@@ -392,54 +377,48 @@ export class EntitySetSQL extends QueryableEntitySetMem {
         return e.bitField;
     }
 
-
     /**
      * Returns a Component by its id
-     * @param es 
-     * @param id 
+     * @param es
+     * @param id
      */
     async getComponent(id: ComponentId | Component): Promise<Component> {
-        let cid: ComponentId = isComponentId(id) ?
-            id as ComponentId
-            : getComponentId(id as Component);
+        const cid: ComponentId = isComponentId(id) ? (id as ComponentId) : getComponentId(id as Component);
 
         this.openEntitySet();
 
-        let [eid, did] = fromComponentId(cid);
+        const [eid, did] = fromComponentId(cid);
         const def = this.getByDefId(did);
 
-        if( def === undefined ){
+        if (def === undefined) {
             return undefined;
         }
 
-        let com = sqlRetrieveComponent(this.db, eid, def);
+        const com = sqlRetrieveComponent(this.db, eid, def);
 
         return com;
     }
 
-
-
     setEntity(e: Entity): Entity {
-        // Log.debug('[setEntity]', e);  
+        // Log.debug('[setEntity]', e);
         return sqlUpdateEntity(this.db, e);
     }
 
     _getEntity(eid: EntityId): Entity {
-        let e = sqlRetrieveEntity(this.db, eid);
+        const e = sqlRetrieveEntity(this.db, eid);
         // recreate the entity properly (with com references)
         return e !== undefined ? this.createEntity(e.id, e.bitField) : undefined;
     }
 
-
     /**
      * Returns an entity instance with components
-     * 
-     * @param es 
-     * @param eid 
+     *
+     * @param es
+     * @param eid
      */
-    async getEntity(eid: EntityId, populate: BitField|boolean = true): Promise<Entity> {
+    async getEntity(eid: EntityId, populate: BitField | boolean = true): Promise<Entity> {
         this.openEntitySet();
-        let e = this._getEntity(eid);
+        const e = this._getEntity(eid);
         if (e === undefined) {
             return undefined;
         }
@@ -447,17 +426,16 @@ export class EntitySetSQL extends QueryableEntitySetMem {
         return this.retrieveEntityComponents(e, populate);
     }
 
-
-    retrieveEntityComponents( e:Entity, populate: BitField|boolean = true ){
+    retrieveEntityComponents(e: Entity, populate: BitField | boolean = true) {
         if (!populate) {
             return e;
         }
 
-        const dids = bfToValues( isBitField(populate) ? (populate as BitField) : e.bitField );
-        
-        let defs = dids.map(did => this.getByDefId(did));
+        const dids = bfToValues(isBitField(populate) ? (populate as BitField) : e.bitField);
 
-        let coms = sqlRetrieveEntityComponents(this.db, e.id, defs);
+        const defs = dids.map((did) => this.getByDefId(did));
+
+        const coms = sqlRetrieveEntityComponents(this.db, e.id, defs);
 
         for (const com of coms) {
             e = this.addComponentToEntity(e, com);
@@ -467,8 +445,8 @@ export class EntitySetSQL extends QueryableEntitySetMem {
 
     /**
      * Registers a new ComponentDef in the entityset
-     * @param es 
-     * @param value 
+     * @param es
+     * @param value
      */
     async register(value: ComponentDef | ComponentDefObj | any): Promise<ComponentDef> {
         this.openEntitySet();
@@ -476,7 +454,7 @@ export class EntitySetSQL extends QueryableEntitySetMem {
 
         // Hash the def, and check whether we already have this
         // const existing = this.getByHash(def.hash);
-        let existing = sqlRetrieveDefByHash(this.db, def.hash);
+        const existing = sqlRetrieveDefByHash(this.db, def.hash);
 
         def = existing === undefined ? sqlInsertDef(this.db, def) : existing;
 
@@ -495,13 +473,10 @@ export class EntitySetSQL extends QueryableEntitySetMem {
         return sqlRetrieveDefs(this.db);
     }
 
-
     async size(): Promise<number> {
         this.openEntitySet();
         return sqlCount(this.db);
     }
-
-
 
     async openEntitySet(options: SQLEntitySetOptions = {}): Promise<EntitySetSQL> {
         if (sqlIsOpen(this.db)) {
@@ -520,10 +495,7 @@ export class EntitySetSQL extends QueryableEntitySetMem {
         return this;
     }
 
-    closeEntitySet(es: EntitySetSQL) {
-
-    }
-
+    closeEntitySet(es: EntitySetSQL) {}
 }
 
 EntitySetSQL.prototype.type = 'sqlite';

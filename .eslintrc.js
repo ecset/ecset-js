@@ -5,8 +5,8 @@ module.exports = {
         sourceType: 'module', // Allows for the use of imports
     },
     env: {
-        "browser": true,
-        "node": true
+        browser: true,
+        node: true,
     },
     extends: [
         // Uses the recommended rules from the @typescript-eslint/eslint-plugin

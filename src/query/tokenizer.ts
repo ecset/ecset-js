@@ -1,4 +1,4 @@
-import { parseJSON } from "@odgn/utils";
+import { parseJSON } from '@odgn/utils';
 
 const MODE_IDLE = 0;
 const MODE_COMMENT = 1 << 0;
@@ -34,15 +34,14 @@ interface Context {
     expectKey: boolean;
 }
 
-
 export interface TokenizeOptions {
     returnValues?: boolean;
 }
 
 /**
- * 
- * @param data 
- * @param options 
+ *
+ * @param data
+ * @param options
  */
 export function tokenizeString(data: string, options: TokenizeOptions = {}) {
     const returnValues = options.returnValues ?? false;
@@ -54,7 +53,7 @@ export function tokenizeString(data: string, options: TokenizeOptions = {}) {
 
     context = tokenize(context, data);
 
-    return returnValues ? context.output.map(e => e[0]) : context.output;
+    return returnValues ? context.output.map((e) => e[0]) : context.output;
 }
 
 /**
@@ -72,13 +71,21 @@ export function tokenize(context: Context, input: string): Context {
 }
 
 function process(context: Context, input: string): Context {
-    let { pos, length, offset, mode,
+    let {
+        pos,
+        length,
+        offset,
+        mode,
         markPosition,
         output,
         endChar,
         mapCount,
         expectKey,
-        buffer, charBuffer, line, linePosition = 0 } = context;
+        buffer,
+        charBuffer,
+        line,
+        linePosition = 0,
+    } = context;
 
     let cpos = 0;
     for (pos; pos < length; cpos++, pos++) {
@@ -93,8 +100,6 @@ function process(context: Context, input: string): Context {
 
         const isNewline = char === '\n';
 
-
-
         if (isSet(mode, MODE_MAYBE_QUOTE)) {
             // console.log('maybequote', char, charBuffer, char !== "'", charBuffer[1] === "'" );
             let clear = false;
@@ -102,24 +107,19 @@ function process(context: Context, input: string): Context {
                 if (char === '*' && charBuffer[1] === '/') {
                     mode = set(mode, MODE_MULTI_COMMENT);
                     clear = true;
-                }
-                else if (char === '/' && charBuffer[1] === '/') {
+                } else if (char === '/' && charBuffer[1] === '/') {
                     mode = set(mode, MODE_COMMENT);
                     clear = true;
-                }
-                else if (char === "'" && charBuffer[1] === "'" && charBuffer[2] === "'") {
+                } else if (char === "'" && charBuffer[1] === "'" && charBuffer[2] === "'") {
                     mode = set(mode, MODE_MULTI_QUOTE);
 
                     offset = linePosition;
                     clear = true;
                 }
-
-            }
-            else if (char !== "'" && charBuffer[1] === "'" && charBuffer[2] === "'") {
-                output.push(["", markPosition, line]);
+            } else if (char !== "'" && charBuffer[1] === "'" && charBuffer[2] === "'") {
+                output.push(['', markPosition, line]);
                 clear = true;
-            }
-            else if (char !== "'" && charBuffer[1] === "'") {
+            } else if (char !== "'" && charBuffer[1] === "'") {
                 mode = set(mode, MODE_QUOTE);
                 mode = unset(mode, MODE_MAYBE_QUOTE);
                 offset = linePosition;
@@ -127,21 +127,20 @@ function process(context: Context, input: string): Context {
                 endChar = "'";
                 buffer = char;
                 continue;
-            }
-            else {
+            } else {
                 // console.log('start val', {char, pos, mapCount, expectKey, last:charBuffer[1]}, buffer);
                 mode = set(mode, MODE_VALUE);
                 mode = unset(mode, MODE_MAYBE_QUOTE);
                 endChar = char === '"' ? char : '';
-                
+
                 offset = linePosition;
-                if (mapCount > 0 && charBuffer[1] === ':' && expectKey ){ //&& (char === '"' || char === "'")) {
+                if (mapCount > 0 && charBuffer[1] === ':' && expectKey) {
+                    //&& (char === '"' || char === "'")) {
                     // console.log(`map delim (${char}) (${buffer})`, {expectKey, mapCount});
                     buffer = '';
                     markPosition++;
                     expectKey = !expectKey;
-                }
-                else if( mapCount > 0 ){
+                } else if (mapCount > 0) {
                     // console.log(`nope delim (${char}) (${buffer})`, {expectKey, mapCount});
                 }
             }
@@ -157,18 +156,12 @@ function process(context: Context, input: string): Context {
             if (isNewline || char === ' ') {
                 // console.log('endof', { markPosition, mapCount }, buffer);
                 if (mapCount === 0) {
-                    
-                    output.push([
-                        parseValue(buffer.trimEnd()),
-                        markPosition,
-                        line
-                    ]);
+                    output.push([parseValue(buffer.trimEnd()), markPosition, line]);
                 }
                 mode = unset(mode, MODE_MULTI_QUOTE | MODE_VALUE);
                 // maybeWithinQuote = false;
                 buffer = '';
-            }
-            else {
+            } else {
                 if (char === '{') {
                     mapCount++;
                     expectKey = true;
@@ -187,13 +180,8 @@ function process(context: Context, input: string): Context {
                     case ':':
                     case ',':
                         // console.log('but what', `(${char})`, `(${buffer})`, {mode, mapCount});
-                        if ( char !== ':' && buffer.length > 0) {
-                            
-                            output.push([
-                                parseValue(buffer.trimEnd()),
-                                markPosition,
-                                line
-                            ]);
+                        if (char !== ':' && buffer.length > 0) {
+                            output.push([parseValue(buffer.trimEnd()), markPosition, line]);
                         }
                         mode = unset(mode, MODE_MULTI_QUOTE | MODE_VALUE);
                         // maybeWithinQuote = false;
@@ -211,30 +199,24 @@ function process(context: Context, input: string): Context {
             if (char == "'" && charBuffer[1] == "'" && charBuffer[2] == "'") {
                 // mode = MODE_IDLE;
                 mode = unset(mode, MODE_MULTI_QUOTE);
-                
-                output.push([
-                    trimMultiQuote(buffer, offset),
-                    markPosition,
-                    line
-                ]);
+
+                output.push([trimMultiQuote(buffer, offset), markPosition, line]);
                 buffer = '';
             }
         } else if (isSet(mode, MODE_VALUE)) {
             let ended = false;
-            if( endChar.length > 0 ){
+            if (endChar.length > 0) {
                 ended = endChar.indexOf(char) !== -1;
-                if( ended ){
+                if (ended) {
                     buffer = buffer + char;
                 }
-            }
-            else 
-            {
+            } else {
                 ended = char === ' ' || isNewline || char === ',' || char === ':' || char === ']' || char === '}';
             }
             if (ended) {
                 // console.log('end value', {mode, pos, char, endChar, mapCount}, buffer);
 
-                let value = parseValue(buffer.trimEnd());
+                const value = parseValue(buffer.trimEnd());
                 // console.log('end val', {char, value, pos}, value );
                 output.push([value, markPosition, line]);
                 mode = unset(mode, MODE_VALUE);
@@ -248,7 +230,6 @@ function process(context: Context, input: string): Context {
                 buffer = '';
                 endChar = '';
             }
-
         } else if (isSet(mode, MODE_QUOTE)) {
             // console.log('mode quote', pos, char, isNewline);
             if (endChar.indexOf(char) !== -1) {
@@ -323,26 +304,32 @@ function process(context: Context, input: string): Context {
         }
 
         if (
-            isSet(mode, MODE_QUOTE)
-            || isSet(mode, MODE_VALUE)
-            // || isSet(mode, MODE_MAYBE_VALUE) 
-            || isSet(mode, MODE_MAYBE_QUOTE)
-            || isSet(mode, MODE_MULTI_QUOTE)
+            isSet(mode, MODE_QUOTE) ||
+            isSet(mode, MODE_VALUE) ||
+            // || isSet(mode, MODE_MAYBE_VALUE)
+            isSet(mode, MODE_MAYBE_QUOTE) ||
+            isSet(mode, MODE_MULTI_QUOTE)
         ) {
             buffer = buffer + char;
         }
     }
 
-
     return {
         ...context,
-        pos, buffer, endChar,
-        mapCount, expectKey,
-        offset, markPosition, mode, charBuffer,
-        output, line, linePosition
+        pos,
+        buffer,
+        endChar,
+        mapCount,
+        expectKey,
+        offset,
+        markPosition,
+        mode,
+        charBuffer,
+        output,
+        line,
+        linePosition,
     };
 }
-
 
 function trimMultiQuote(buffer: string, headerOffset: number) {
     // trim all whitespace up to the first character
@@ -389,7 +376,6 @@ function trimLeftMax(str: string, offset: number) {
     while (ii < offset && ws.test(str.charAt(ii++)));
     return str.substring(ii - 1);
 }
-
 
 function parseValue(str: string) {
     return parseJSON(str, str);

@@ -1,18 +1,10 @@
-import { Component, ComponentId } from "./component";
-import { ComponentDef, ComponentDefObj } from "./component_def";
-import { Entity, EntityId } from "./entity";
-import {
-    AddOptions,
-    CloneOptions,
-    EntitySet,
-    EntitySetOptions,
-    RemoveEntityType,
-    RemoveType
-} from "./entity_set";
-import { QueryableEntitySet, SelectOptions } from "./entity_set/queryable";
-import { QueryOptions, QueryStack, Statement } from "./query";
-import { StackValue } from "./query/types";
-
+import { Component, ComponentId } from './component';
+import { ComponentDef, ComponentDefObj } from './component_def';
+import { Entity, EntityId } from './entity';
+import { AddOptions, CloneOptions, EntitySet, EntitySetOptions, RemoveEntityType, RemoveType } from './entity_set';
+import { QueryableEntitySet, SelectOptions } from './entity_set/queryable';
+import { QueryOptions, QueryStack, Statement } from './query';
+import { StackValue } from './query/types';
 
 /**
  * Proxies calls to another EntitySet. Useful for overriding and intercepting certain calls
@@ -36,7 +28,7 @@ export class ProxyEntitySet extends QueryableEntitySet {
     }
 
     async clone(options: CloneOptions = {}): Promise<EntitySet> {
-        let result = new ProxyEntitySet(await this.es.clone() as QueryableEntitySet);
+        const result = new ProxyEntitySet((await this.es.clone()) as QueryableEntitySet);
         return result;
     }
 
@@ -88,10 +80,9 @@ export class ProxyEntitySet extends QueryableEntitySet {
         return this.es.getEntities();
     }
 
-    async getEntity(eid: EntityId, populate: boolean = true): Promise<Entity> {
+    async getEntity(eid: EntityId, populate = true): Promise<Entity> {
         return this.es.getEntity(eid, populate);
     }
-
 
     addComponents(components: Component[], options?: AddOptions): Promise<EntitySet> {
         return this.es.addComponents(components, options);
@@ -105,7 +96,7 @@ export class ProxyEntitySet extends QueryableEntitySet {
         return this.es.markEntityComponentsRemove(eids);
     }
 
-    createComponent(defId: (string | number | ComponentDef), attributes = {}): Component {
+    createComponent(defId: string | number | ComponentDef, attributes = {}): Component {
         return this.es.createComponent(defId, attributes);
     }
 }

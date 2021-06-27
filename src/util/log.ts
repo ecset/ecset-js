@@ -17,7 +17,7 @@ interface LogOptions {
 }
 
 export function createLog(name, options: LogOptions = {}) {
-    let fn: Log = {
+    const fn: Log = {
         debug: () => {},
         info: () => {},
         log: () => {},
@@ -31,7 +31,7 @@ export function createLog(name, options: LogOptions = {}) {
         return fn;
         // ['debug', 'info', 'log', 'warn', 'error'].forEach(l => (fn[l] = () => {}));
     }
-    for (let m in console) {
+    for (const m in console) {
         if (typeof console[m] == 'function') {
             fn[m] = (...args) => {
                 let format = '';
@@ -50,7 +50,7 @@ export function createLog(name, options: LogOptions = {}) {
         let format = '';
 
         if (options.time) {
-            format += '['+(Date.now()-1589490000000)+']';// formatNow();
+            format += '[' + (Date.now() - 1589490000000) + ']'; // formatNow();
         }
 
         format += '[' + name + '] ';

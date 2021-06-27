@@ -1,14 +1,13 @@
-import { createUUID, isInteger } from "@odgn/utils";
+import { createUUID, isInteger } from '@odgn/utils';
 import {
     BitField,
     create as createBitField,
     get as bfGet,
     set as bfSet,
     count as bfCount,
-    or as bfOr,
     toValues as bfToValues,
-    isBitField
-} from "@odgn/utils/bitfield";
+    isBitField,
+} from '@odgn/utils/bitfield';
 import {
     Component,
     ComponentId,
@@ -20,24 +19,18 @@ import {
     isComponentId,
     toComponentId,
     setEntityId as setComponentEntityId,
-} from "../component";
+} from '../component';
 import {
     ComponentDef,
     ComponentDefId,
     ComponentDefObj,
     create as createComponentDef,
     hash as hashComponentDef,
-    Type as DefT
-} from "../component_def";
-import { MatchOptions } from "../constants";
-import {
-    Entity,
-    EntityId,
-    getEntityId,
-    isEntity,
-
-} from "../entity";
-import { AddOptions, CloneOptions, EntitySet, EntitySetOptions, RemoveEntityType, RemoveType } from "../entity_set";
+    Type as DefT,
+} from '../component_def';
+import { MatchOptions } from '../constants';
+import { Entity, EntityId, getEntityId, isEntity } from '../entity';
+import { AddOptions, CloneOptions, EntitySet, EntitySetOptions, RemoveEntityType, RemoveType } from '../entity_set';
 import {
     create as createChangeSet,
     add as addCS,
@@ -45,15 +38,14 @@ import {
     remove as removeCS,
     find as findCS,
     merge as mergeCS,
-    ChangeSetOp, getChanges
-} from "../change_set";
+    ChangeSetOp,
+    getChanges,
+} from '../change_set';
 
 /**
- * 
+ *
  */
 export class EntitySetMem extends EntitySet {
-
-
     components = new Map<ComponentId, Component>();
     entities = new Map<EntityId, BitField>();
 
@@ -68,21 +60,21 @@ export class EntitySetMem extends EntitySet {
     }
 
     /**
-     * 
-     * @returns 
+     *
+     * @returns
      */
     getUrl(): string {
         return `es://${this.type}/?uuid=${this.uuid}`;
     }
 
     /**
-     * 
-     * @param options 
-     * @returns 
+     *
+     * @param options
+     * @returns
      */
     async clone(options: CloneOptions = {}): Promise<EntitySet> {
-        let includeDefs = options.cloneDefs ?? true;
-        let includeEnts = includeDefs ? options.cloneEntities ?? true : false;
+        const includeDefs = options.cloneDefs ?? true;
+        const includeEnts = includeDefs ? options.cloneEntities ?? true : false;
 
         let { componentDefs, components, entities, byUrl, byHash, entChanges, comChanges } = this;
         if (!includeEnts) {
@@ -96,7 +88,7 @@ export class EntitySetMem extends EntitySet {
             byHash = undefined;
             byUrl = undefined;
         }
-        let props = {
+        const props = {
             ...this,
             uuid: createUUID(),
             components: new Map<ComponentId, Component>(components),
@@ -106,10 +98,9 @@ export class EntitySetMem extends EntitySet {
             byHash: new Map<number, number>(byHash),
             entChanges: createChangeSet(entChanges),
             comChanges: createChangeSet(comChanges),
-        }
+        };
 
-
-        let result = new EntitySetMem(props as any);
+        const result = new EntitySetMem(props as any);
         // console.log('[mem][clone]', this.components, result.components);
 
         return result;
@@ -119,20 +110,16 @@ export class EntitySetMem extends EntitySet {
         return this.entities.size;
     }
 
-
-
-
     /**
      * Register a ComponentDef with this EntitySet
      */
     async register(value: ComponentDef | ComponentDefObj | any): Promise<ComponentDef> {
-
-        let did = this.componentDefs.length + 1;
+        const did = this.componentDefs.length + 1;
 
         let def = createComponentDef(did, value);
 
         // Hash the def, and check whether we already have this
-        let hash = hashComponentDef(def);
+        const hash = hashComponentDef(def);
 
         const existing = this.getByHash(hash);
         if (existing !== undefined) {
@@ -151,24 +138,19 @@ export class EntitySetMem extends EntitySet {
         return def;
     }
 
-
     /**
-     * 
-     * @returns 
+     *
+     * @returns
      */
     async getComponentDefs(): Promise<ComponentDef[]> {
         return Promise.resolve(this.componentDefs);
     }
 
-
-
     /**
-     * 
+     *
      */
     async applyUpdates() {
-
         if (this.entUpdates.size > 0) {
-
             // console.log('[add]', 'applying entity updates', this.entUpdates );
             const entities = new Map<number, BitField>(this.entities);
 
@@ -203,20 +185,20 @@ export class EntitySetMem extends EntitySet {
     }
 
     /**
-     * 
-     * @param components 
-     * @param options 
-     * @returns 
+     *
+     * @param components
+     * @param options
+     * @returns
      */
     async addComponents(components: Component[], options: AddOptions = {}): Promise<EntitySet> {
         const debug = options.debug ?? false;
         // set a new (same) entity id on all orphaned components
-        components = this.assignEntityIds(components)
+        components = this.assignEntityIds(components);
 
         // Log.debug('[addComponents]', components);
 
         // to keep track of changes only in this function, we must temporarily replace
-        let changes = this.comChanges;
+        const changes = this.comChanges;
         this.comChanges = createChangeSet<ComponentId>();
         // clearChanges()
 
@@ -224,7 +206,7 @@ export class EntitySetMem extends EntitySet {
         await components.reduce((p, com) => p.then(() => this.markComponentAdd(com, options)), Promise.resolve());
 
         // gather the components that have been added or updated and apply
-        let changedCids = getChanges(this.comChanges, ChangeSetOp.Add | ChangeSetOp.Update)
+        const changedCids = getChanges(this.comChanges, ChangeSetOp.Add | ChangeSetOp.Update);
         // if( debug ) console.log('[addComponents]', 'pre', changedCids);
 
         this.comChanges = mergeCS(changes, this.comChanges);
@@ -239,18 +221,20 @@ export class EntitySetMem extends EntitySet {
     }
 
     /**
-     * 
-     * @param components 
-     * @param options 
+     *
+     * @param components
+     * @param options
      */
     async removeComponents(items: RemoveType[], options: AddOptions = {}): Promise<EntitySet> {
         if (options.retain !== true) {
             this.clearChanges();
         }
         for (const item of items) {
-            let cid = isComponentId(item) ?
-                item as ComponentId
-                : isComponent(item) ? getComponentId(item as Component) : undefined;
+            const cid = isComponentId(item)
+                ? (item as ComponentId)
+                : isComponent(item)
+                ? getComponentId(item as Component)
+                : undefined;
             this.markComponentRemove(cid);
         }
 
@@ -258,23 +242,20 @@ export class EntitySetMem extends EntitySet {
     }
 
     /**
-     * 
-     * @param item 
-     * @param options 
+     *
+     * @param item
+     * @param options
      */
     async removeComponent(item: RemoveType, options: AddOptions = {}): Promise<EntitySet> {
         return this.removeComponents([item], options);
     }
 
-
-
-
     /**
-     * 
-     * @param item 
-     * @param options 
+     *
+     * @param item
+     * @param options
      */
-    async removeEntity(item: (RemoveEntityType), options: AddOptions = {}): Promise<EntitySet> {
+    async removeEntity(item: RemoveEntityType, options: AddOptions = {}): Promise<EntitySet> {
         if (options.retain !== true) {
             this.clearChanges();
         }
@@ -285,8 +266,9 @@ export class EntitySetMem extends EntitySet {
             item = [item] as any[];
         }
 
-        eids = (item as any[]).map(ii => isInteger(ii) ? ii : isEntity(ii) ? getEntityId(ii as Entity) : 0)
-            .filter(it => it !== 0);
+        eids = (item as any[])
+            .map((ii) => (isInteger(ii) ? ii : isEntity(ii) ? getEntityId(ii as Entity) : 0))
+            .filter((it) => it !== 0);
 
         if (eids.length === 0) {
             return this;
@@ -301,8 +283,8 @@ export class EntitySetMem extends EntitySet {
     }
 
     /**
-     * 
-     * @param id 
+     *
+     * @param id
      */
     getComponentMem(id: ComponentId | Component): Component {
         if (isComponentId(id)) {
@@ -314,9 +296,9 @@ export class EntitySetMem extends EntitySet {
 
     /**
      * Return an Entity by its id
-     * @param eid 
-     * @param populate 
-     * @returns 
+     * @param eid
+     * @param populate
+     * @returns
      */
     async getEntity(eid: EntityId, populate: BitField | boolean = true): Promise<Entity> {
         return this.getEntityMem(eid, populate);
@@ -324,11 +306,11 @@ export class EntitySetMem extends EntitySet {
 
     /**
      * todo : use MatchOptions
-     * @param eid 
-     * @param populate 
+     * @param eid
+     * @param populate
      */
     getEntityMem(eid: EntityId, populate: BitField | boolean = true): Entity {
-        let ebf = this.entities.get(eid);
+        const ebf = this.entities.get(eid);
         if (ebf === undefined) {
             return undefined;
         }
@@ -351,21 +333,20 @@ export class EntitySetMem extends EntitySet {
 
     /**
      * Returns Entity instances for the supplied list of EntityIds
-     * 
-     * @param eids 
+     *
+     * @param eids
      */
     getEntitiesByIdMem(eids: EntityId[] | boolean, options: MatchOptions = {}): Entity[] {
         const entities = this.entities;
         const populate = options.populate ?? false;
 
         if (Array.isArray(eids)) {
-            return eids.map(eid => {
-                let ebf = entities.get(eid);
-                return ebf === undefined ? undefined
-                    : this.getEntityMem(eid, populate);
+            return eids.map((eid) => {
+                const ebf = entities.get(eid);
+                return ebf === undefined ? undefined : this.getEntityMem(eid, populate);
             });
         }
-        let result = [];
+        const result = [];
         if (eids === true) {
             for (const [eid] of this.entities) {
                 result.push(this.getEntityMem(eid, populate));
@@ -375,9 +356,9 @@ export class EntitySetMem extends EntitySet {
     }
 
     /**
-     * 
-     * @param dids 
-     * @param options 
+     *
+     * @param dids
+     * @param options
      */
     // getEntitiesByDefId( dids:ComponentDefId[], options:MatchOptions ): Promise<Entity[]|EntityId[]> {
 
@@ -408,9 +389,9 @@ export class EntitySetMem extends EntitySet {
     }
 
     /**
-     * 
-     * @param bf 
-     * @param options 
+     *
+     * @param bf
+     * @param options
      */
     // getEntitiesMem(bf: BitField, options: MatchOptions = {}): Entity[] {
     //     const populate = options.populate ?? false;
@@ -423,9 +404,9 @@ export class EntitySetMem extends EntitySet {
     // }
 
     /**
-     * 
-     * @param bf 
-     * @param options 
+     *
+     * @param bf
+     * @param options
      */
     // getComponentsMem(bf: BitField, options: MatchOptions = {}): Component[] {
     //     let coms: Component[] = [];
@@ -443,9 +424,9 @@ export class EntitySetMem extends EntitySet {
     // }
 
     // /**
-    //  * 
-    //  * @param mbf 
-    //  * @param options 
+    //  *
+    //  * @param mbf
+    //  * @param options
     //  */
     // matchComponents(mbf:BitField, options: MatchOptions = {}): Component[] {
     //     let matches:Component[] = [];
@@ -464,15 +445,14 @@ export class EntitySetMem extends EntitySet {
     //     return matches;
     // }
 
-
     /**
      * Returns the first component that matches the bitfield and the supplied
      * comparison function
-     * @param mbf 
-     * @param cb 
+     * @param mbf
+     * @param cb
      */
     findComponent(mbf: BitField, cb: (com: Component, eid: EntityId, did: ComponentDefId) => boolean): Component {
-        for (let [cid, com] of this.components) {
+        for (const [cid, com] of this.components) {
             const [eid, did] = fromComponentId(cid);
             if (mbf.isAllSet || bfGet(mbf, did) === true) {
                 if (cb(com, eid, did)) {
@@ -503,11 +483,9 @@ export class EntitySetMem extends EntitySet {
         return record;
     }
 
-
-
     setEntity(e: Entity): Entity {
         let eid = getEntityId(e);
-        let bf = e.bitField || createBitField();
+        const bf = e.bitField || createBitField();
 
         if (eid === 0) {
             eid = this.createEntityId();
@@ -519,16 +497,15 @@ export class EntitySetMem extends EntitySet {
         return e;
     }
 
-
     /**
      * Takes an array of Components and assigns Entity ids to
      * those which dont have one
-     * 
-     * @param components 
-     * @returns 
+     *
+     * @param components
+     * @returns
      */
     assignEntityIds(components: Component[]): Component[] {
-        let coms = [];
+        const coms = [];
         let eids = new Set();
         let eid = 0;
         let comEid = 0;
@@ -536,7 +513,7 @@ export class EntitySetMem extends EntitySet {
             // ensure the component did is resolved
             com = this.resolveComponent(com);
 
-            let did = getComponentDefId(com);
+            const did = getComponentDefId(com);
 
             comEid = getComponentEntityId(com);
 
@@ -546,12 +523,11 @@ export class EntitySetMem extends EntitySet {
                 continue;
             }
 
-
             // not yet assigned an entity, or we have already seen this com type
             if (eid === 0 || eids.has(did)) {
                 // create a new entity - this also applies if we encounter a component
                 // of a type we have seen before
-                eid = this.createEntityAlt();// await createEntity(es);
+                eid = this.createEntityAlt(); // await createEntity(es);
                 comEid = eid;
 
                 // Log.debug('[assignEntityIds]', 'new e', eid);
@@ -573,12 +549,11 @@ export class EntitySetMem extends EntitySet {
         return coms;
     }
 
-
     /**
-     * 
-     * @param com 
-     * @param options 
-     * @returns 
+     *
+     * @param com
+     * @param options
+     * @returns
      */
     async markComponentAdd(com: Component, options: AddOptions = {}): Promise<EntitySet> {
         const debug = options.debug ?? false;
@@ -594,19 +569,19 @@ export class EntitySetMem extends EntitySet {
             // hit the store
             existing = await this.getComponent(cid);
         }
-        
+
         // if (existing !== undefined) {
-            // TODO - this breaks updates - come back and investigate
-            // let isChanged = this.isComponentChanged(com, existing);
-            
-            // console.log('[markComponentAdd]', {isChanged}, com, existing );
-            // if (!isChanged) {
-            //     return this;
-            // }
+        // TODO - this breaks updates - come back and investigate
+        // let isChanged = this.isComponentChanged(com, existing);
+
+        // console.log('[markComponentAdd]', {isChanged}, com, existing );
+        // if (!isChanged) {
+        //     return this;
         // }
-        
+        // }
+
         this.comUpdates.set(cid, com);
-        
+
         if (existing !== undefined) {
             this.emit('/component/upd', com, existing);
             return this.markComponentUpdate(cid);
@@ -619,28 +594,28 @@ export class EntitySetMem extends EntitySet {
         return this;
     }
 
-    markComponentUpdate(cid: ComponentId) {
-        this.comChanges = updateCS(this.comChanges, cid)
+    markComponentUpdate(cid: ComponentId): EntitySetMem {
+        this.comChanges = updateCS(this.comChanges, cid);
         // console.log('[markComponentUpdate]', cid);
         return this;
     }
 
-    markComponentRemove(cid: ComponentId) {
+    markComponentRemove(cid: ComponentId): EntitySetMem {
         this.comChanges = removeCS(this.comChanges, cid);
         return this;
     }
 
-    markEntityAdd(eid: EntityId) {
+    markEntityAdd(eid: EntityId): EntitySetMem {
         this.entChanges = addCS(this.entChanges, eid);
         this.emit('/entity/add', eid);
         return this;
     }
-    markEntityUpdate(eid: EntityId) {
+    markEntityUpdate(eid: EntityId): EntitySetMem {
         this.entChanges = updateCS(this.entChanges, eid);
         this.emit('/entity/upd', eid);
         return this;
     }
-    markEntityRemove(eid: EntityId) {
+    markEntityRemove(eid: EntityId): EntitySetMem {
         this.entChanges = removeCS(this.entChanges, eid);
         this.emit('/entity/rem', eid);
         return this;
@@ -649,10 +624,10 @@ export class EntitySetMem extends EntitySet {
     /**
      * Compares two components and returns true if the
      * components are different
-     * 
-     * @param a 
-     * @param b 
-     * @returns 
+     *
+     * @param a
+     * @param b
+     * @returns
      */
     isComponentChanged(a: Component, b: Component): boolean {
         if (this.componentCmp) {
@@ -664,15 +639,16 @@ export class EntitySetMem extends EntitySet {
     }
 
     /**
-     * 
-     * @param eid 
+     *
+     * @param eid
      */
     async markEntityComponentsRemove(eids: EntityId[]): Promise<EntitySet> {
-
         for (let ii = 0; ii < eids.length; ii++) {
             const eid = eids[ii];
-            let ebf = this.entities.get(eid);
-            if (ebf === undefined) { continue; }
+            const ebf = this.entities.get(eid);
+            if (ebf === undefined) {
+                continue;
+            }
             const dids = bfToValues(ebf);
             for (let dd = 0; dd < dids.length; dd++) {
                 this.markComponentRemove(toComponentId(eid, dids[dd]));
@@ -682,12 +658,11 @@ export class EntitySetMem extends EntitySet {
         return this;
     }
 
-
     /**
-     * 
-     * @param eid 
+     *
+     * @param eid
      */
-    applyRemoveEntity(eid: EntityId) {
+    applyRemoveEntity(eid: EntityId): void {
         // console.log('[applyRemoveEntity]', eid);
         this.entities.delete(eid);
     }
@@ -717,16 +692,15 @@ export class EntitySetMem extends EntitySet {
     }
 
     /**
-     * 
-     * @param cid 
+     *
+     * @param cid
      */
     async applyUpdatedComponents(cid: ComponentId): Promise<EntitySet> {
         const [eid, did] = fromComponentId(cid);
-        let ebf: BitField;
         // console.log('[applyUpdatedComponents]', eid, did, this.entChanges );
         // console.log('[applyUpdatedComponents]', 'in', this.entUpdates);
 
-        ebf = await this.getOrAddEntityBitfield(eid);
+        const ebf: BitField = await this.getOrAddEntityBitfield(eid);
 
         // console.log('[applyUpdatedComponents]', eid, did, ebf );
 
@@ -736,7 +710,7 @@ export class EntitySetMem extends EntitySet {
 
         // does the component already belong to this entity?
         if (!hasComponent) {
-            let e = this.createEntity(eid);// new Entity(eid);
+            const e = this.createEntity(eid); // new Entity(eid);
             // console.log('[applyUpdatedComponents]', eid, did, bfToValues(e.bitField) );
             e.bitField = bfSet(ebf, did);
 
@@ -755,7 +729,7 @@ export class EntitySetMem extends EntitySet {
     }
 
     async applyRemoveComponent(cid: ComponentId): Promise<EntitySet> {
-        let [eid, did] = fromComponentId(cid);
+        const [eid, did] = fromComponentId(cid);
 
         // remove the component id from the entity
         let ebf = this.entUpdates.get(eid);
@@ -767,9 +741,8 @@ export class EntitySetMem extends EntitySet {
         // remove from the entity
         ebf = bfSet(ebf, did, false);
 
-
         // remove component from the internal component map
-        let components = new Map<ComponentId, Component>(this.components);
+        const components = new Map<ComponentId, Component>(this.components);
         components.delete(cid);
 
         this.components = components;
@@ -783,19 +756,13 @@ export class EntitySetMem extends EntitySet {
         // console.log('[applyRemoveComponent]', 'set', eid, bfCount(ebf));
         this.entUpdates.set(eid, ebf);
         return this.markEntityUpdate(eid);
-
     }
 
-
-
-
     createEntityAlt(): EntityId {
-        let eid = this.createEntityId();
+        const eid = this.createEntityId();
         this.markEntityAdd(eid);
         return eid;
     }
-
-
 }
 
 EntitySetMem.prototype.type = 'mem';

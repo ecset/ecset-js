@@ -1,16 +1,23 @@
-import { SType, StackValue } from "./types";
+import { SType, StackValue } from './types';
 
 import {
-    onAddComponentToEntity, onAddToEntitySet, onAdd,
+    onAddComponentToEntity,
+    onAddToEntitySet,
+    onAdd,
     onPrint,
     onUnexpectedError,
     onBuildMap,
-    onDrop, onSwap, onPush, onPop,
+    onDrop,
+    onSwap,
+    onPush,
+    onPop,
     onClear,
-    onDup, onSelect,
+    onDup,
+    onSelect,
     onComponentDef,
     fetchComponentDef,
-    onComponent, onEntity,
+    onComponent,
+    onEntity,
     onAssertType,
     onPrintStack,
     onToString,
@@ -24,26 +31,31 @@ import {
     onRegexBuild,
     onCompare,
     onThrow,
-} from "./words";
-import { onPluck } from "./words/pluck";
-import { onDefine, onFetchWord } from "./words/define";
-import { onDo, onLoop } from "./words/loop";
+} from './words';
+import { onPluck } from './words/pluck';
+import { onDefine, onFetchWord } from './words/define';
+import { onDo, onLoop } from './words/loop';
+import { QueryStack } from './stack';
+import { tokenizeString } from './tokenizer';
+import { onCondition, onLogicalOp } from './words/cond';
+import { Entity, EntityId } from '../entity';
+import { getComponentDefId, getComponentEntityId } from '../component';
 import {
-    QueryStack,
-} from './stack';
-import { tokenizeString } from "./tokenizer";
-import { onCondition, onLogicalOp } from "./words/cond";
-import { Entity, EntityId } from "../entity";
-import { getComponentDefId, getComponentEntityId } from "../component";
-import { onAddList, onListFetch, 
-    onConcat, onDiff, 
-    onFilter, onGather, 
-    onListEval, onListOpen, 
-    onListSpread, 
-    onMap, onReduce, onUnique,
-    onListIndexOf 
-} from "./words/list";
-import { onMapOpen } from "./words/map";
+    onAddList,
+    onListFetch,
+    onConcat,
+    onDiff,
+    onFilter,
+    onGather,
+    onListEval,
+    onListOpen,
+    onListSpread,
+    onMap,
+    onReduce,
+    onUnique,
+    onListIndexOf,
+} from './words/list';
+import { onMapOpen } from './words/map';
 export { QueryStack };
 export const parse = (q: string) => tokenizeString(q, { returnValues: true });
 
@@ -58,7 +70,7 @@ export interface StatementArgs {
     [key: string]: any;
 }
 /**
- * 
+ *
  */
 export class Statement {
     q: string;
@@ -80,7 +92,7 @@ export class Statement {
         }
     }
 
-    async run(args?: StatementArgs, debug:boolean = false) {
+    async run(args?: StatementArgs, debug = false) {
         await this.clear();
         // if( debug ) console.log('[run]', this );
         // console.log('[run]', this.stack._idx, this.stack._stacks.map(s => s.id) );
@@ -89,29 +101,21 @@ export class Statement {
             // if( debug ) console.log('[run]', 'args', Object.keys(args) );
             const defines = Object.keys(args).reduce((out, key) => {
                 let val = args[key];
-                val = Array.isArray(val) ?
-                    [SType.List, val.map(v => [SType.Value, v])]
-                    : [SType.Value, val];
-                return [...out,
-                    val,
-                [SType.Value, key],
-                [SType.Value, 'let']
-                ];
+                val = Array.isArray(val) ? [SType.List, val.map((v) => [SType.Value, v])] : [SType.Value, val];
+                return [...out, val, [SType.Value, key], [SType.Value, 'let']];
             }, []);
             // if( debug ) console.log('[run]', 'defines', defines );
             await this.stack.pushValues(defines);
         }
 
-        
         try {
             // if( debug ) console.log('[run]', this.insts );
-            await this.stack.pushValues(this.insts, {debug});
-        } catch( err ){
-            console.error('[run]', this.q.substring(0, Math.min(256,this.q.length)) );
-            
+            await this.stack.pushValues(this.insts, { debug });
+        } catch (err) {
+            console.error('[run]', this.q.substring(0, Math.min(256, this.q.length)));
+
             throw err;
         }
-
 
         return this;
     }
@@ -119,8 +123,8 @@ export class Statement {
     /**
      * Runs the statement and returns the top item
      * on the result stack
-     * 
-     * @param args 
+     *
+     * @param args
      */
     async pop(args?: StatementArgs) {
         await this.run(args);
@@ -130,42 +134,41 @@ export class Statement {
     /**
      * Runs the values on the stack and returns
      * the top value
-     * 
-     * @param args 
+     *
+     * @param args
      */
-    async getResult(args?: StatementArgs, debug:boolean = false) {
+    async getResult(args?: StatementArgs, debug = false) {
         await this.run(args, debug);
         // if( debug ) console.log('[getResult]', this.stack.toString() );
         // if( debug )console.log('[getResult]', this.stack );
-        let result = this.stack.popValue();
+        const result = this.stack.popValue();
         // if( debug ) console.log('[getResult]', 'result', result );
         return result;
     }
 
     /**
      * Returns the user defined word defined on the stack
-     * 
-     * @param word 
+     *
+     * @param word
      */
     getValue(word: string) {
         return this.stack.getUDValue(word);
     }
 
-
-
-
     /**
      * Runs the query and returns the result as an array of
      * entities if appropriate
-     * 
-     * @param args 
+     *
+     * @param args
      */
     async getEntities(args?: StatementArgs): Promise<Entity[]> {
         await this.run(args);
 
         const value = this.stack.pop();
         let result: Entity[] = [];
-        if (value === undefined) { return result; }
+        if (value === undefined) {
+            return result;
+        }
 
         const es = this.stack.es;
         const [type, val] = value;
@@ -176,9 +179,8 @@ export class Statement {
             for (const [lt, lv] of val) {
                 if (lt === SType.Entity) {
                     result.push(lv);
-                }
-                else if (lt === SType.Component) {
-                    let eid = getComponentEntityId(lv);
+                } else if (lt === SType.Component) {
+                    const eid = getComponentEntityId(lv);
 
                     if (em === undefined) {
                         em = new Map<EntityId, Entity>();
@@ -193,14 +195,13 @@ export class Statement {
                 result = Array.from(em.values());
             }
         } else if (type === SType.Component) {
-            let eid = getComponentEntityId(val);
-            let e = es.createEntity(eid);
+            const eid = getComponentEntityId(val);
+            const e = es.createEntity(eid);
             e.addComponentUnsafe(val);
             result.push(e);
         } else if (type == SType.Entity) {
             result.push(val);
-        }
-        else if (type === SType.Value) {
+        } else if (type === SType.Value) {
             result.push(await es.getEntity(val, true));
         }
 
@@ -213,14 +214,13 @@ export class Statement {
     }
 }
 
-
 /**
- * 
- * @param q 
- * @param options 
+ *
+ * @param q
+ * @param options
  */
 export async function query(q: string, options: QueryOptions = {}): Promise<QueryStack> {
-    let stack = options.stack ?? createStdLibStack();
+    const stack = options.stack ?? createStdLibStack();
     const values = options.values;
 
     if (values) {
@@ -236,11 +236,10 @@ export async function query(q: string, options: QueryOptions = {}): Promise<Quer
 }
 
 /**
- * 
- * @param stack 
+ *
+ * @param stack
  */
 export function createStdLibStack(stack?: QueryStack) {
-
     stack = stack ?? new QueryStack();
 
     stack = stack.addWords([
@@ -258,7 +257,6 @@ export function createStdLibStack(stack?: QueryStack) {
         ['==', onRegex, SType.Value, SType.Regex],
         ['!=', onRegex, SType.Value, SType.Regex],
         ['!r', onRegexBuild, SType.Value],
-
 
         ['==', onDateTime, SType.DateTime, SType.DateTime],
         ['!=', onDateTime, SType.DateTime, SType.DateTime],
@@ -346,7 +344,7 @@ export function createStdLibStack(stack?: QueryStack) {
         // ['cond', onCondition, SType.Any, SType.Any, SType.Any], // cond, if, else
         ['iif', onCondition, SType.Any, SType.Any, SType.Any], // cond, if, else
         ['if', onCondition, SType.Any, SType.Any],
-        
+
         ['and', onLogicalOp, SType.Any, SType.Any],
         ['or', onLogicalOp, SType.Any, SType.Any],
         ['??', onLogicalOp, SType.Any, SType.Any],
@@ -370,7 +368,13 @@ export function createStdLibStack(stack?: QueryStack) {
         ['assert_type', onAssertType],
         ['prints', onPrintStack],
         ['throw', onThrow, SType.Value],
-        ['debug', () => { stack.scratch.debug = !!!stack.scratch.debug; return undefined }],
+        [
+            'debug',
+            () => {
+                stack.scratch.debug = !!!stack.scratch.debug;
+                return undefined;
+            },
+        ],
     ]);
 
     return stack;

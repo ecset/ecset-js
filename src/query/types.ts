@@ -1,5 +1,5 @@
-import { EntitySet } from "../entity_set";
-import { QueryStack } from "./stack";
+import { EntitySet } from '../entity_set';
+import { QueryStack } from './stack';
 
 export enum SType {
     Value = ':v',
@@ -18,9 +18,7 @@ export enum SType {
     Filter = ':|',
     // Leave = '%#'
     // Undefined = '%un'
-};
-
-
+}
 
 export interface InstDefMeta {
     op: string | string[];
@@ -39,35 +37,32 @@ export type WordFn = SyncWordFn | AsyncWordFn;
 export type SyncWordFn = (stack: QueryStack, val: StackValue) => InstResult;
 export type AsyncWordFn = (stack: QueryStack, val: StackValue) => Promise<InstResult>;
 
-export type WordSpec = [ string, WordFn|StackValue, ...(SType)[] ];
+export type WordSpec = [string, WordFn | StackValue, ...SType[]];
 // export type WordSpec = [ (string|string[]), WordFn|StackValue, ...(SType|string)[] ];
 
 export type WordArgs = SType[];
 // fn, args
-export type WordEntry = [ WordFn, WordArgs ];
+export type WordEntry = [WordFn, WordArgs];
 
 export interface Words {
-    [name: string]: WordEntry[]
+    [name: string]: WordEntry[];
 }
-
 
 export interface QueryStackDefs {
     [def: string]: StackValue;
 }
-
-
 
 export interface StackError {
     original?: any;
 }
 export class StackError extends Error {
     constructor(...args) {
-        super(...args)
+        super(...args);
         Object.setPrototypeOf(this, StackError.prototype);
         // Log.debug('StackError!', args, this);
         // Maintains proper stack trace for where our error was thrown (only available on V8)
         if (Error.captureStackTrace) {
-            Error.captureStackTrace(this, StackError)
+            Error.captureStackTrace(this, StackError);
         }
         this.name = 'StackError';
     }

@@ -4,14 +4,9 @@ import {
     ComponentId,
     create as createComponentInstance,
     isExternalComponent,
-    OrphanComponent
-} from "../component";
-import {
-    BitField,
-    create as createBitField,
-    get as bfGet,
-    set as bfSet,
-} from "@odgn/utils/bitfield";
+    OrphanComponent,
+} from '../component';
+import { BitField, create as createBitField, get as bfGet, set as bfSet } from '@odgn/utils/bitfield';
 import {
     Type as DefT,
     ComponentDef,
@@ -20,40 +15,32 @@ import {
     getProperty,
     getDefId,
     isComponentDef,
-} from "../component_def";
-import {
-    Entity,
-    isEntity,
-    EntityId
-} from "../entity";
+} from '../component_def';
+import { Entity, isEntity, EntityId } from '../entity';
 import { createUUID } from '@odgn/utils';
-import {
-    create as createChangeSet,
-    ChangeSetOp, getChanges
-} from "../change_set";
+import { create as createChangeSet, ChangeSetOp, getChanges } from '../change_set';
 import { isInteger, isObject, isString } from '@odgn/utils';
 
 import { buildFlake53 } from '@odgn/utils';
-
-
 
 export interface AddOptions {
     debug?: boolean;
     retain?: boolean;
 }
 
+type EntitySetCandidate = any;
 
-export function isEntitySet(value: any): boolean {
+export function isEntitySet(value: EntitySetCandidate): boolean {
     return isObject(value) && value.isEntitySet === true;
 }
 
-export function isEntitySetMem(value: any): boolean {
+export function isEntitySetMem(value: EntitySetCandidate): boolean {
     return isObject(value) && value.isEntitySetMem === true;
 }
 
 export type EntityIdGen = () => EntityId;
 
-export type ComponentCmp = (a:Component, b:Component) => boolean;
+export type ComponentCmp = (a: Component, b: Component) => boolean;
 
 export interface EntitySetOptions {
     readDefs?: boolean;
@@ -80,12 +67,13 @@ export type RemoveType = ComponentId | Entity | Component | EntitySet;
 export type RemoveEntityType = EntityId | EntityId[] | Entity | Entity[];
 
 export type Listener = (...args: any[]) => void;
-export interface Events { [event: string]: Listener[]; }
+export interface Events {
+    [event: string]: Listener[];
+}
 
 let workerIdBase = 0;
 
 export abstract class EntitySet {
-
     isEntitySet!: boolean;
     isAsync!: boolean;
     type!: string;
@@ -138,12 +126,11 @@ export abstract class EntitySet {
     /**
      * Returns an entity by its id
      * The Entity will have all its components retrieved by default
-     * 
-     * @param eid 
-     * @param populate 
+     *
+     * @param eid
+     * @param populate
      */
     abstract getEntity(eid: EntityId, populate?: BitField | boolean): Promise<Entity>;
-
 
     /**
      * Returns a generator of all entities in the set
@@ -159,28 +146,25 @@ export abstract class EntitySet {
 
     abstract getComponentDefs(): Promise<ComponentDef[]>;
 
-
-
     /**
      * Returns entities by defId
-     * 
-     * @param dids 
-     * @param populate 
+     *
+     * @param dids
+     * @param populate
      */
     // abstract getEntitiesByDefId( dids:ComponentDefId[], options:MatchOptions ): Promise<Entity[]|EntityId[]>;
 
-
     /**
      * Returns a Component by its id [entityId,defId]
-     * 
-     * @param id 
+     *
+     * @param id
      */
     abstract getComponent(id: ComponentId | Component): Promise<Component>;
 
     /**
      * Removes an entity by its id
-     * @param item 
-     * @param options 
+     * @param item
+     * @param options
      */
     abstract removeEntity(item: RemoveEntityType, options?: AddOptions): Promise<EntitySet>;
 
@@ -188,11 +172,10 @@ export abstract class EntitySet {
 
     abstract removeComponents(items: RemoveType[], options?: AddOptions): Promise<EntitySet>;
 
-
     /**
-     * 
-     * @param item 
-     * @param options 
+     *
+     * @param item
+     * @param options
      */
     async add<ES extends EntitySet>(item: AddType, options: AddOptions = {}): Promise<ES> {
         await this.openEntitySet();
@@ -210,9 +193,9 @@ export abstract class EntitySet {
         // }
 
         if (Array.isArray(item)) {
-            let initial: [Entity[], Component[]] = [[], []];
+            const initial: [Entity[], Component[]] = [[], []];
             // sort the incoming items into entities and components
-            let [ents, coms] = (item as any[]).reduce(([ents, coms], item) => {
+            const [ents, coms] = (item as any[]).reduce(([ents, coms], item) => {
                 if (isComponentLike(item)) {
                     coms.push(item);
                 } else if (isEntity(item)) {
@@ -224,33 +207,32 @@ export abstract class EntitySet {
             // console.log('[add]', ents);
             // add components on entities
             if (ents.length > 0) {
-                await ents.reduce((p, e) => p.then(() => this.addComponents(e.getComponents(), options)), Promise.resolve());
+                await ents.reduce(
+                    (p, e) => p.then(() => this.addComponents(e.getComponents(), options)),
+                    Promise.resolve(),
+                );
             }
 
             // add components
             await this.addComponents(coms, options);
-        }
-        else if (isComponentLike(item)) {
+        } else if (isComponentLike(item)) {
             await this.addComponents([item as Component], options);
-        }
-        else if (isEntity(item)) {
-            let e = item as Entity
+        } else if (isEntity(item)) {
+            const e = item as Entity;
             // if( debug ){ console.log('add', e)}
             this.markEntityComponentsRemove([e.id]);
             await this.addComponents(e.getComponents(), options);
-        }
-        else if (isEntitySet(item)) {
-            let es = item as EntitySet;
+        } else if (isEntitySet(item)) {
+            const es = item as EntitySet;
             // apply defs
-            let defs = await es.getComponentDefs();
-            let didTable = new Map<ComponentDefId, ComponentDefId>();
-
+            const defs = await es.getComponentDefs();
+            const didTable = new Map<ComponentDefId, ComponentDefId>();
 
             // register sender defs and record their ids
             for (let ii = 0, len = defs.length; ii < len; ii++) {
-                let def = defs[ii];
+                const def = defs[ii];
                 await this.register(def);
-                let rdef = this.getByHash(def.hash);
+                const rdef = this.getByHash(def.hash);
                 didTable.set(getDefId(def), getDefId(rdef));
             }
 
@@ -259,7 +241,7 @@ export abstract class EntitySet {
 
             // rebuild each of the sender components altering their
             // def id
-            let coms: Component[] = [];
+            const coms: Component[] = [];
 
             for await (const com of es.getComponents()) {
                 let { '@d': did, ...rest } = com;
@@ -280,11 +262,8 @@ export abstract class EntitySet {
         return this as unknown as ES;
     }
 
-    async beginUpdates() {
-    }
-    async applyUpdates() {
-    }
-
+    async beginUpdates() {}
+    async applyUpdates() {}
 
     clearChanges() {
         this.comChanges = createChangeSet();
@@ -296,7 +275,6 @@ export abstract class EntitySet {
     abstract markEntityComponentsRemove(eids: EntityId[]): Promise<EntitySet>;
 
     abstract applyRemoveChanges(): Promise<EntitySet>;
-
 
     /**
      * Returns an array of EntityId that were added or updated last op
@@ -312,11 +290,10 @@ export abstract class EntitySet {
         return getChanges(this.entChanges, ChangeSetOp.Remove);
     }
 
-
     /**
-     * 
-     * @param options 
-     * @returns 
+     *
+     * @param options
+     * @returns
      */
     async openEntitySet(options: EntitySetOptions = {}): Promise<EntitySet> {
         return this;
@@ -336,11 +313,11 @@ export abstract class EntitySet {
             timestamp: Date.now(),
             workerId: this.workerId,
             epoch: this.eidEpoch,
-            sequence: this.eidSeq++
+            sequence: this.eidSeq++,
         });
     }
 
-    createComponent(defId: (string | number | ComponentDef), attributes = {}): Component {
+    createComponent(defId: string | number | ComponentDef, attributes = {}): Component {
         let def: ComponentDef = undefined;
 
         if (isString(defId)) {
@@ -357,9 +334,9 @@ export abstract class EntitySet {
             throw new Error(`component def not found: ${defId}`);
         }
 
-        let params = {
+        const params = {
             ...attributes,
-            '@d': def[DefT]
+            '@d': def[DefT],
         };
 
         // create a component instance
@@ -368,12 +345,11 @@ export abstract class EntitySet {
         return component;
     }
 
-
     /**
      * Returns a ComponentDef by its url
-     * 
-     * @param url 
-     * @returns 
+     *
+     * @param url
+     * @returns
      */
     getByUrl(url: string): ComponentDef {
         const did = this.byUrl.get(url);
@@ -382,9 +358,9 @@ export abstract class EntitySet {
 
     /**
      * Returns a ComponentDef by its id
-     * 
-     * @param defId 
-     * @returns 
+     *
+     * @param defId
+     * @returns
      */
     getByDefId(defId: ComponentDefId): ComponentDef {
         return this.componentDefs[defId - 1];
@@ -392,34 +368,32 @@ export abstract class EntitySet {
 
     /**
      * Returns a ComponentDef by its hash
-     * @param hash 
-     * @returns 
+     * @param hash
+     * @returns
      */
     getByHash(hash: number): ComponentDef {
         const did = this.byHash.get(hash);
         return did === undefined ? undefined : this.componentDefs[did - 1];
     }
 
-
     /**
      * Adds a Component to an Entity
-     * 
-     * @param e 
-     * @param com 
-     * @returns 
+     *
+     * @param e
+     * @param com
+     * @returns
      */
     addComponentToEntity(e: Entity, com: Component): Entity {
         return e.addComponentUnsafe(com);
     }
 
-
     /**
      * Takes a Component and attempts to resolve its Def id
-     * 
-     * @param com 
-     * @returns 
+     *
+     * @param com
+     * @returns
      */
-    resolveComponent(com: (OrphanComponent | Component)): Component {
+    resolveComponent(com: OrphanComponent | Component): Component {
         if (!isExternalComponent(com)) {
             return com as any;
         }
@@ -435,12 +409,11 @@ export abstract class EntitySet {
     /**
      * Takes a url and attempts to resolve it into
      * a ComponentDef.
-     * 
-     * @param did 
-     * @returns 
+     *
+     * @param did
+     * @returns
      */
     resolveComponentDefAttribute(did: string): [BitField, string] {
-
         let attrName: string;
         const isAttr = (did as string).indexOf('#') !== -1;
         if (isAttr) {
@@ -460,7 +433,7 @@ export abstract class EntitySet {
 
         const prop = getProperty(def, attrName);
 
-        const bf = createBitField([getDefId(def)])
+        const bf = createBitField([getDefId(def)]);
 
         // console.log('[resolveComponentDefAttribute]', did, isAttr, attrName, def.properties );
 
@@ -468,54 +441,44 @@ export abstract class EntitySet {
         return [bf, prop ? attrName : undefined];
     }
 
-
-
     /**
-     * Resolves an array of Def identifiers (url,hash, or did) to ComponentDefs  
-     * 
+     * Resolves an array of Def identifiers (url,hash, or did) to ComponentDefs
+     *
      * @param value defId or url
      * @returns a bitfield with the resolved def ids
      */
     resolveComponentDefIds(value: ResolveDefIds): BitField {
         const bf = createBitField();
 
-        let dids = Array.isArray(value) ? value : [value];
+        const dids = Array.isArray(value) ? value : [value];
         if (dids.length === 0) {
             return bf;
         }
 
-        const defs: ComponentDef[] = (dids as []).map(did => {
+        const defs: ComponentDef[] = (dids as []).map((did) => {
             // Log.debug('[resolveComponentDefIds]', did, registry );
             if (isString(did)) {
                 return this.getByUrl(did);
-            }
-            else if (isInteger(did)) {
+            } else if (isInteger(did)) {
                 return this.getByHash(did) || this.componentDefs[did - 1];
             }
             return undefined;
         });
 
-        return defs.reduce((bf, def) =>
-            def === undefined ?
-                bf :
-                bfSet(bf, getDefId(def)),
-            bf);
+        return defs.reduce((bf, def) => (def === undefined ? bf : bfSet(bf, getDefId(def))), bf);
     }
-
 
     /**
      * Resolves a def url to its Did
-     * @param value 
+     * @param value
      */
     resolveComponentDefId(value: string): ComponentDefId {
         const def = this.getByUrl(value);
         return def !== undefined ? def[DefT] : 0;
     }
 
-
-
     on(event: string, listener: Listener): () => void {
-        if (typeof this.events[event] !== "object") {
+        if (typeof this.events[event] !== 'object') {
             this.events[event] = [];
         }
 
@@ -524,7 +487,7 @@ export abstract class EntitySet {
     }
 
     removeListener(event: string, listener: Listener): void {
-        if (typeof this.events[event] !== "object") {
+        if (typeof this.events[event] !== 'object') {
             return;
         }
 
@@ -535,9 +498,7 @@ export abstract class EntitySet {
     }
 
     removeAllListeners(): void {
-        Object.keys(this.events).forEach((event: string) =>
-            this.events[event].splice(0, this.events[event].length),
-        );
+        Object.keys(this.events).forEach((event: string) => this.events[event].splice(0, this.events[event].length));
     }
 
     off(event?, listener?) {
@@ -551,7 +512,7 @@ export abstract class EntitySet {
     }
 
     emit(event: string, ...args: any[]): void {
-        if (typeof this.events[event] !== "object") {
+        if (typeof this.events[event] !== 'object') {
             return;
         }
 
@@ -559,14 +520,13 @@ export abstract class EntitySet {
     }
 
     once(event: string, listener: Listener): () => void {
-        const remove: (() => void) = this.on(event, (...args: any[]) => {
+        const remove: () => void = this.on(event, (...args: any[]) => {
             remove();
             listener.apply(this, args);
         });
 
         return remove;
     }
-
 }
 
 EntitySet.prototype.isEntitySet = true;

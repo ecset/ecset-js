@@ -1,25 +1,16 @@
 import { suite } from 'uvu';
 import assert from 'uvu/assert';
-import { printAll, printEntity } from '../../sql/helpers';
 
-import {
-    bfToValues,
-    Entity,
-    getEntityId,
-    createEntitySet,
-    prepES,
-} from '../helpers';
+import { bfToValues, Entity, getEntityId, createEntitySet, prepES } from '../helpers';
 
-
-let test = suite('es/mem/query - Select');
-
+const test = suite('es/mem/query - Select');
 
 test('fetches entities by id', async () => {
-    let query = `[ 102 @e ] select`;
-    let [stack] = await prepES(query, 'todo');
+    const query = `[ 102 @e ] select`;
+    const [stack] = await prepES(query, 'todo');
 
     // ilog(stack.items);
-    let result = stack.popValue();
+    const result = stack.popValue();
 
     // ilog( result );
 
@@ -28,13 +19,13 @@ test('fetches entities by id', async () => {
 });
 
 test('select no entities', async () => {
-    let query = `
+    const query = `
     [ 0 @eid /component/title#text @ca ] select
     `;
-    let [stack] = await prepES(query, 'todo');
+    const [stack] = await prepES(query, 'todo');
 
     // ilog(stack.items);
-    let result = stack.popValue();
+    const result = stack.popValue();
 
     // ilog( result );
 
@@ -43,45 +34,57 @@ test('select no entities', async () => {
 });
 
 test('select using eids', async () => {
-    let [stack,es] = await prepES(`
+    const [stack, es] = await prepES(
+        `
     [
         [ 100 102 ]
         @c
     ] select
-    `, 'todo');
+    `,
+        'todo',
+    );
 
-    let eids = new Set( stack.popValue().map( c => c['@e'] ) );
-    assert.equal( Array.from(eids), [100,102] );
+    const eids = new Set(stack.popValue().map((c) => c['@e']));
+    assert.equal(Array.from(eids), [100, 102]);
 });
 
 test('select condition using eids', async () => {
-    let [stack,es] = await prepES(`
+    const [stack, es] = await prepES(
+        `
     [
         [ 100 102 ]
         /component/completed#/isComplete !ca true ==
         @c
     ] select
-    `, 'todo');
+    `,
+        'todo',
+    );
 
-    let eids = new Set( stack.popValue().map( c => c['@e'] ) );
-    assert.equal( Array.from(eids), [100] );
+    const eids = new Set(stack.popValue().map((c) => c['@e']));
+    assert.equal(Array.from(eids), [100]);
 });
 
 test('select bf using eids', async () => {
-    let id = 100; const idgen = () => ++id;
-    let [stack,es] = await prepES(`
+    let id = 100;
+    const idgen = () => ++id;
+    const [stack, es] = await prepES(
+        `
     [
         [ 100 109 ]
         /component/piece/pawn !bf
         @eid
     ] select
-    `, 'chess', {idgen});
+    `,
+        'chess',
+        { idgen },
+    );
 
-    assert.equal( stack.popValue(), [109] );
+    assert.equal(stack.popValue(), [109]);
 });
 
 test('multi select condition using eids', async () => {
-    let [stack,es] = await prepES(`
+    const [stack, es] = await prepES(
+        `
     [
         [ 100 102 ]
             /component/completed#/isComplete !ca true ==
@@ -89,120 +92,144 @@ test('multi select condition using eids', async () => {
         and
         @c
     ] select
-    `, 'todo');
+    `,
+        'todo',
+    );
 
-    let eids = new Set( stack.popValue().map( c => c['@e'] ) );
-    assert.equal( Array.from(eids), [100] );
+    const eids = new Set(stack.popValue().map((c) => c['@e']));
+    assert.equal(Array.from(eids), [100]);
 });
 
 test('fetches entities by did', async () => {
-    let query = `[ "/component/completed" !bf @e] select`;
-    let [stack] = await prepES(query, 'todo');
+    const query = `[ "/component/completed" !bf @e] select`;
+    const [stack] = await prepES(query, 'todo');
 
     // the result will be a list value of entities
-    let result = stack.popValue();
+    const result = stack.popValue();
 
     assert.equal(
-        result.map(e => getEntityId(e)),
-        [100, 101, 102]);
+        result.map((e) => getEntityId(e)),
+        [100, 101, 102],
+    );
 
     assert.equal(
-        result.map(e => bfToValues(e.bitField)),
-        [[1, 2, 3, 4], [1, 2, 4], [1, 2, 4]]);
+        result.map((e) => bfToValues(e.bitField)),
+        [
+            [1, 2, 3, 4],
+            [1, 2, 4],
+            [1, 2, 4],
+        ],
+    );
 });
 
 test('fetches all the entities', async () => {
-    let query = `[ all !bf @e ] select`;
-    let [stack] = await prepES(query, 'todo');
-    let result = stack.popValue();
+    const query = `[ all !bf @e ] select`;
+    const [stack] = await prepES(query, 'todo');
+    const result = stack.popValue();
 
-    assert.equal(result.map(e => e.id), [100, 101, 102, 103, 104, 105]);
-})
+    assert.equal(
+        result.map((e) => e.id),
+        [100, 101, 102, 103, 104, 105],
+    );
+});
 
 test('fetches all the entities ids', async () => {
-    let query = `[ all !bf @eid ] select`;
-    let [stack] = await prepES(query, 'todo');
-    let result = stack.popValue();
+    const query = `[ all !bf @eid ] select`;
+    const [stack] = await prepES(query, 'todo');
+    const result = stack.popValue();
 
     assert.equal(result, [100, 101, 102, 103, 104, 105]);
 });
 
 test('fetches component ids', async () => {
-    let query = `[ /component/title !bf @cid ] select`;
-    let [stack] = await prepES(query, 'todo');
-    let result = stack.popValue();
+    const query = `[ /component/title !bf @cid ] select`;
+    const [stack] = await prepES(query, 'todo');
+    const result = stack.popValue();
 
-    assert.equal(result, ["[100,1]", "[101,1]", "[102,1]", "[103,1]", "[104,1]"]);
+    assert.equal(result, ['[100,1]', '[101,1]', '[102,1]', '[103,1]', '[104,1]']);
 });
 
-
 test('fetches component attributes', async () => {
-    let [stack] = await prepES(`[ 
+    const [stack] = await prepES(
+        `[ 
                 /component/title !bf
                 @c
                 /text pluck
-            ] select`, 'todo');
+            ] select`,
+        'todo',
+    );
 
-    let result = stack.popValue();
+    const result = stack.popValue();
     assert.equal(result, [
         'get out of bed',
         'phone up friend',
         'turn on the news',
         'drink some tea',
-        'do some shopping'
-    ])
+        'do some shopping',
+    ]);
 });
 
 test('fetches entity component attribute', async () => {
-    let [stack] = await prepES(`[ 
+    const [stack] = await prepES(
+        `[ 
                 103 @eid
                 /component/title !bf
                 @c
                 /text pluck
-            ] select pop`, 'todo');
+            ] select pop`,
+        'todo',
+    );
 
     // ilog(stack.items);
-    let result = stack.popValue();
+    const result = stack.popValue();
     // ilog( result );
     assert.equal(result, 'drink some tea');
-})
+});
 
 test('fetching components from unknown entity', async () => {
-    let [stack] = await prepES(`
+    const [stack] = await prepES(
+        `
     [
         19999 @eid
         /component/title !bf
         @c
     ] select
-    `, 'todo');
+    `,
+        'todo',
+    );
 
     assert.equal(stack.popValue(), []);
 });
 
-
 test('entity with all the components', async () => {
-    let [stack,es] = await prepES(`
+    const [stack, es] = await prepES(
+        `
     [
         [ /component/title /component/priority ] !bf
         @eid
     ] select
-    `, 'todo');
+    `,
+        'todo',
+    );
 
-    assert.equal( stack.popValue(), [100,104] );
+    assert.equal(stack.popValue(), [100, 104]);
 });
 
 test('entity without components', async () => {
-    let [stack,es] = await prepES(`
+    const [stack, es] = await prepES(
+        `
     [
         /component/completed !bf !not
         @eid
     ] select
-    `, 'todo');
+    `,
+        'todo',
+    );
 
     // console.log(es.getUrl());
     // await printAll(es);
     // console.log( es.componentDefs.map( d => `${d['@d']} ${d.url}`).join('\n') );
-    assert.equal( stack.popValue(), [103,104,105] );
+    assert.equal(stack.popValue(), [103, 104, 105]);
 });
 
 // test.only('match against both defs', async () => {
@@ -223,40 +250,49 @@ test('entity without components', async () => {
 // });
 
 test('fetching components with optional', async () => {
-    let [stack] = await prepES(`
+    const [stack] = await prepES(
+        `
     [
         [/component/title /component/completed] !bf
         @c
     ] select
     /@e pluck unique
     rot [ *^$1 /component/priority !bf @c ] select rot +
-    `, 'todo');
+    `,
+        'todo',
+    );
 
     assert.equal(stack.popValue().length, 7);
 });
 
-
 test('fetches component attributes', async () => {
-    let [stack] = await prepES(`
+    const [stack] = await prepES(
+        `
 
         [ /component/title#text @ca ] select
 
-    `, 'todo');
-    let titles = stack.popValue();
+    `,
+        'todo',
+    );
+    const titles = stack.popValue();
     assert.equal(titles[2], 'turn on the news');
 });
 
 test('fetches component attribute from entitiy', async () => {
-    let [stack] = await prepES(`
+    const [stack] = await prepES(
+        `
 
         [ 102 @eid /component/title#text @ca ] select pop!
-    `, 'todo');
-    let title = stack.popValue();
+    `,
+        'todo',
+    );
+    const title = stack.popValue();
     assert.equal(title, 'turn on the news');
 });
 
 test('fetches matching component attribute', async () => {
-    let [stack] = await prepES(`[ 
+    const [stack] = await prepES(
+        `[ 
                 // fetches values for text from all the entities in the es
                 /component/title#/text !ca
                 "do some shopping"
@@ -266,14 +302,17 @@ test('fetches matching component attribute', async () => {
                 /component/title !bf
                 @c
             ] select
-            `, 'todo');
+            `,
+        'todo',
+    );
 
-    let coms = stack.popValue();
-    assert.equal(coms[0].text, "do some shopping");
+    const coms = stack.popValue();
+    assert.equal(coms[0].text, 'do some shopping');
 });
 
 test('fetches entities matching component attribute', async () => {
-    let [stack] = await prepES(`[ 
+    const [stack] = await prepES(
+        `[ 
                 // fetches values for text from all the entities in the es
                 /component/completed#/isComplete !ca
                 true
@@ -281,11 +320,16 @@ test('fetches entities matching component attribute', async () => {
                 // its result will be components
                 ==
                 @e
-            ] select`, 'todo');
+            ] select`,
+        'todo',
+    );
 
-    let ents = stack.popValue();
+    const ents = stack.popValue();
 
-    assert.equal(ents.map(e => getEntityId(e)), [100, 101]);
+    assert.equal(
+        ents.map((e) => getEntityId(e)),
+        [100, 101],
+    );
 });
 
 test('testing whether entity has a component', async () => {
@@ -303,77 +347,73 @@ test('testing whether entity has a component', async () => {
     nok ok rot size! 0 swap > iif
     `;
 
-    let [stack] = await prepES(query, 'todo');
+    const [stack] = await prepES(query, 'todo');
     // ilog( stack.popValue() );
     assert.equal(stack.popValue(), 'nok');
 });
 
-
 test('fetches matching attribute with regex', async () => {
-    let [stack] = await prepES(`[ 
+    const [stack] = await prepES(
+        `[ 
                 /component/title#/text !ca ~r/some/ ==
                 /component/title !bf
                 @c
                 /text pluck
-            ] select`, 'todo');
+            ] select`,
+        'todo',
+    );
 
-    let result = stack.popValue();
-    assert.equal(result, [
-        'drink some tea',
-        'do some shopping'
-    ])
+    const result = stack.popValue();
+    assert.equal(result, ['drink some tea', 'do some shopping']);
 });
 
 test('uses regex for minimum length', async () => {
-    let [stack] = await prepES(`[ 
+    const [stack] = await prepES(
+        `[ 
                 /component/meta#/meta/author !ca ~r/^.{2,}$/ ==
                 /component/title !bf
                 @c
                 /text pluck
-            ] select`, 'todo');
+            ] select`,
+        'todo',
+    );
 
-    let result = stack.popValue();
-    assert.equal(result, [
-        'get out of bed',
-        'drink some tea'
-    ])
+    const result = stack.popValue();
+    assert.equal(result, ['get out of bed', 'drink some tea']);
 });
 
 test('fetches by comparing a date', async () => {
-    let [stack] = await prepES(`[ 
+    const [stack] = await prepES(
+        `[ 
                 /component/meta#/createdAt !ca ~d/2020-05-23T12:00:00.000Z/ <=
                 // and
                 /component/title !bf
                 @c
                 /text pluck
-            ] select`, 'todo');
+            ] select`,
+        'todo',
+    );
 
-    let result = stack.popValue();
-    assert.equal(result, [
-        'get out of bed',
-        'turn on the news'
-    ])
+    const result = stack.popValue();
+    assert.equal(result, ['get out of bed', 'turn on the news']);
 });
 
-
-
 test('uses multi conditions', async () => {
-    let query = `[
+    const query = `[
             /component/position#/file !ca a ==
             /component/position#/rank !ca 2 ==
             and
             all
             @c
-            ] select !e`
+            ] select !e`;
 
-    let [stack] = await prepES(query, 'chess');
+    const [stack] = await prepES(query, 'chess');
 
-    let e: Entity = stack.popValue();
+    const e: Entity = stack.popValue();
 
     assert.equal(e.size, 3);
     assert.equal(e.Colour.colour, 'white');
 });
-
 
 // test.only('and condition with failing', async () => {
 //     let query = `
@@ -396,7 +436,7 @@ test('uses multi conditions', async () => {
 // });
 
 test('and/or condition', async () => {
-    let query = `
+    const query = `
             // create an es with the defs
             @d
             {} !es
@@ -419,16 +459,16 @@ test('and/or condition', async () => {
             +
             `;
 
-    let [stack] = await prepES(query, 'chess');
+    const [stack] = await prepES(query, 'chess');
 
-    let es = stack.popValue();
+    const es = stack.popValue();
 
     assert.equal(await es.size(), 4);
 });
 
-
 test('super select', async () => {
-    let [stack, es] = await prepES(`
+    const [stack, es] = await prepES(
+        `
             [
                 uid !
                 [ /component/username#/username !ca  $uid == ] select
@@ -455,15 +495,17 @@ test('super select', async () => {
             [ "/component/channel_member" { "@e":14, channel: ^^$0, client: ^^$0 } ]
 
             to_str
-            `, 'irc');
+            `,
+        'irc',
+    );
 
     // Log.debug( stack.toString() );
-    assert.equal(stack.popValue(),
-        '[ /component/channel_member { @e: 14 channel: 3 client: 11 } ]');
-})
+    assert.equal(stack.popValue(), '[ /component/channel_member { @e: 14 channel: 3 client: 11 } ]');
+});
 
 test('multi fn query', async () => {
-    let [stack, es] = await prepES(`
+    const [stack, es] = await prepES(
+        `
             es let
             [
                 client_id let
@@ -513,18 +555,18 @@ test('multi fn query', async () => {
             // selects the nicknames of other entities who share
             // the same channel as 9 (roxanne)
             9 selectChannelMembersByClientId
-            `, 'irc');
+            `,
+        'irc',
+    );
 
-    let result = stack.popValue();
-    let nicknames = result.map(v => v.nickname);
+    const result = stack.popValue();
+    const nicknames = result.map((v) => v.nickname);
     assert.equal(nicknames, ['missy', 'lauryn', 'koolgrap']);
 });
 
-
-
-
 test('selects a JSON attribute', async () => {
-    let [stack] = await prepES(`
+    const [stack] = await prepES(
+        `
         [
             // where( attr('/component/meta#/meta/author').equals('av') )
             /component/meta#/meta/author !ca av ==
@@ -532,7 +574,9 @@ test('selects a JSON attribute', async () => {
             @c
             /meta/tags/1 pluck
         ] select pop
-        `, 'todo');
+        `,
+        'todo',
+    );
 
     // console.log( stack.items );
     const result = stack.popValue();
@@ -541,10 +585,9 @@ test('selects a JSON attribute', async () => {
     assert.equal(result, 'action');
 });
 
-
 test('selecting component by attribute', async () => {
     let id = 1000;
-    let idgen = () => ++id;
+    const idgen = () => ++id;
     const es = createEntitySet({ idgen });
 
     const stmt = es.prepare(`
@@ -570,14 +613,12 @@ test('selecting component by attribute', async () => {
 
     assert.equal(res.length, 1);
     assert.equal(res[0].url, 'file:///readme.txt');
-
 });
-
 
 test('selecting component by attribute', async () => {
     let id = 1000;
-    let idgen = () => ++id;
-    const es = createEntitySet({idgen});
+    const idgen = () => ++id;
+    const es = createEntitySet({ idgen });
 
     const stmt = es.prepare(`
         [ "/component/src", ["url"] ] !d
@@ -600,16 +641,13 @@ test('selecting component by attribute', async () => {
 
     const res = await stmt.getResult();
 
-    assert.equal( res.length, 1 );
-    assert.equal( res[0].url, 'file:///readme.txt' );
-
+    assert.equal(res.length, 1);
+    assert.equal(res[0].url, 'file:///readme.txt');
 });
-
-
 
 test('and/or component', async () => {
     let id = 1000;
-    let idgen = () => ++id;
+    const idgen = () => ++id;
     const es = createEntitySet({ idgen });
 
     const stmt = es.prepare(`
@@ -653,7 +691,7 @@ test('and/or component', async () => {
         // prints
     `);
 
-    const res = await stmt.getResult({ref:200});
+    const res = await stmt.getResult({ ref: 200 });
 
     assert.equal(res.length, 1);
     assert.equal(res[0].url, 'file:///misc/style.scss');
@@ -661,7 +699,7 @@ test('and/or component', async () => {
 
 test('bf or', async () => {
     let id = 1000;
-    let idgen = () => ++id;
+    const idgen = () => ++id;
     const es = createEntitySet({ idgen });
 
     const stmt = es.prepare(`
@@ -684,13 +722,11 @@ test('bf or', async () => {
 
     const res = await stmt.getResult();
     assert.equal(res.length, 2);
-
 });
-
 
 test('multi bitfield select', async () => {
     let id = 1000;
-    let idgen = () => ++id;
+    const idgen = () => ++id;
     const es = createEntitySet({ idgen });
 
     const stmt = es.prepare(`
@@ -723,8 +759,7 @@ test('multi bitfield select', async () => {
     `);
 
     const res = await stmt.getResult();
-    assert.equal(res, [ 'file:///about.txt', 'file:///projects.txt' ]);
+    assert.equal(res, ['file:///about.txt', 'file:///projects.txt']);
 });
-
 
 test.run();

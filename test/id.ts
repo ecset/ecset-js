@@ -8,27 +8,26 @@ const test = suite('Snowflake ids');
 
 /**
  * flake53 (https://github.com/cablehead/python-fity3)
- * 
+ *
  * timestamp | workerId | sequence
  * 41 bits  |  8 bits   |  4 bits
  *
- * 
+ *
  * flake63 (https://github.com/luxe-eng/flake-idgen-63)
  * (63bit in order to help java, the poor thing)
- * 
+ *
  * reserved | timestamp | processId | workerId | sequence
  * 1 bit    | 42 bits   | 4 bits    | 5 bits   | 12 bits
  *                      | id                   |
  *                      | 9 bits               |
  *
- * 
+ *
  * discord/twitter64 (https://discordapp.com/developers/docs/reference#snowflakes)
- * 
+ *
  * timestamp | workerId | processId | sequence
  * 42 bits   | 5 bits   | 5 bits    | 12 bits
  *
  */
-
 
 // it('flakeId63', () => {
 //     const flakeIdGen63 = new FlakeId63({
@@ -102,50 +101,23 @@ test('flake parse', () => {
         date: new Date('2019-04-18T10:36:48.941Z'),
         id: 511,
         timestamp: 1555583808941,
-        worker: 31
+        worker: 31,
     });
 
-    assert.equal(hexToInt64Array('0x2D4600A6B5BFF000'), [
-        45,
-        70,
-        0,
-        166,
-        181,
-        191,
-        240,
-        0
-    ]);
-    assert.equal(stringToInt64Array('3262295696090329088'), [
-        45,
-        70,
-        0,
-        166,
-        181,
-        191,
-        240,
-        0
-    ]);
+    assert.equal(hexToInt64Array('0x2D4600A6B5BFF000'), [45, 70, 0, 166, 181, 191, 240, 0]);
+    assert.equal(stringToInt64Array('3262295696090329088'), [45, 70, 0, 166, 181, 191, 240, 0]);
 
     const descr = {
         counter: 1459,
         processId: 6,
         worker: 31,
-        timestamp: 1555594808509
+        timestamp: 1555594808509,
     };
 
     assert.equal(buildFlake63(descr), '3262318763855181235');
 
     // ((data[6] & 0xF) << 8) | data[7];
-    assert.equal(parseFlake63('3262318763855181235', 'arr'), [
-        45,
-        70,
-        21,
-        161,
-        151,
-        173,
-        245,
-        179
-    ]);
+    assert.equal(parseFlake63('3262318763855181235', 'arr'), [45, 70, 21, 161, 151, 173, 245, 179]);
 
     assert.equal(parseFlake63('3262318763855181235'), {
         counter: 1459,
@@ -153,7 +125,7 @@ test('flake parse', () => {
         date: new Date('2019-04-18T13:40:08.509Z'),
         id: 223,
         timestamp: 1555594808509,
-        worker: 31
+        worker: 31,
     });
 
     // expect( parseFlake63('3262318763855061171', 'bin') ).toEqual( '' );
@@ -164,7 +136,7 @@ test('flake53', () => {
         timestamp: 1555608701611,
         workerId: 14,
         sequence: 10,
-        epoch: TwitterEpoch
+        epoch: TwitterEpoch,
     };
 
     assert.equal(buildFlake53(data), 582606444998890);
@@ -173,23 +145,13 @@ test('flake53', () => {
 
     assert.ok(Number.isSafeInteger(582606444998890));
 
-    assert.equal(stringToInt64Array('582606444998890'), [
-        0,
-        2,
-        17,
-        224,
-        162,
-        50,
-        176,
-        234
-    ]);
+    assert.equal(stringToInt64Array('582606444998890'), [0, 2, 17, 224, 162, 50, 176, 234]);
 });
-
 
 test.run();
 
-const TwitterEpoch: number = 1413370800000;
-const Epoch: number = 1546333200000;
+const TwitterEpoch = 1413370800000;
+const Epoch = 1546333200000;
 
 const Flake53WorkerIdBits = 8;
 const Flake53SequenceBits = 4;
@@ -213,15 +175,11 @@ function buildFlake53({
     timestamp = Date.now(),
     workerId = 0,
     sequence = 0,
-    epoch = TwitterEpoch
+    epoch = TwitterEpoch,
 }: Flake53Params): number {
     const workerIdShift = Flake53SequenceBits;
 
-    return (
-        lshift(timestamp - epoch, Flake53TimestampLeftShift) +
-        lshift(workerId, workerIdShift) +
-        sequence
-    );
+    return lshift(timestamp - epoch, Flake53TimestampLeftShift) + lshift(workerId, workerIdShift) + sequence;
 }
 
 /**
@@ -230,32 +188,27 @@ function buildFlake53({
  * @param flake53
  * @param epoch
  */
-function parseFlake53(
-    flake53: number,
-    epoch: number = TwitterEpoch
-): Flake53Params {
+function parseFlake53(flake53: number, epoch: number = TwitterEpoch): Flake53Params {
     return {
-        timestamp:
-            rshift(flake53, Flake53TimestampLeftShift) +
-            epoch,
+        timestamp: rshift(flake53, Flake53TimestampLeftShift) + epoch,
         workerId: rshift(flake53, Flake53SequenceBits) & 0xff,
         sequence: flake53 & 0xf,
-        epoch
+        epoch,
     };
 }
 
 // https://gist.github.com/lttlrck/4129238
 function hexToInt64Array(str: string) {
-    let result = new Array(8);
+    const result = new Array(8);
 
     let hiStr = (str + '').replace(/^0x/, '');
-    let loStr = hiStr.substr(-8);
+    const loStr = hiStr.substr(-8);
     hiStr = hiStr.length > 8 ? hiStr.substr(0, hiStr.length - 8) : '';
 
-    let hi = parseInt(hiStr, 16);
+    const hi = parseInt(hiStr, 16);
     let lo = parseInt(loStr, 16);
 
-    let o = 0;
+    const o = 0;
     for (let i = 7; i >= 0; i--) {
         result[o + i] = lo & 0xff;
         lo = i === 4 ? hi : lo >>> 8;
@@ -273,12 +226,12 @@ function stringToInt64Array(str: string) {
 
 // http://www.danvk.org/hex2dec.html
 function decToHex(decStr) {
-    let hex = convertBase(decStr, 10, 16);
+    const hex = convertBase(decStr, 10, 16);
     return hex ? '0x' + hex : null;
 }
 
 function convertBase(str, fromBase, toBase) {
-    let digits = parseToDigitsArray(str, fromBase);
+    const digits = parseToDigitsArray(str, fromBase);
     if (digits === null) return null;
 
     let outArray = [];
@@ -286,11 +239,7 @@ function convertBase(str, fromBase, toBase) {
     for (let i = 0; i < digits.length; i++) {
         // invariant: at this point, fromBase^i = power
         if (digits[i]) {
-            outArray = add(
-                outArray,
-                multiplyByNumber(digits[i], power, toBase),
-                toBase
-            );
+            outArray = add(outArray, multiplyByNumber(digits[i], power, toBase), toBase);
         }
         power = multiplyByNumber(fromBase, power, toBase);
     }
@@ -303,10 +252,10 @@ function convertBase(str, fromBase, toBase) {
 }
 
 function parseToDigitsArray(str, base) {
-    let digits = str.split('');
-    let ary = [];
+    const digits = str.split('');
+    const ary = [];
     for (let i = digits.length - 1; i >= 0; i--) {
-        let n = parseInt(digits[i], base);
+        const n = parseInt(digits[i], base);
         if (isNaN(n)) return null;
         ary.push(n);
     }
@@ -316,8 +265,12 @@ function parseToDigitsArray(str, base) {
 // Returns a*x, where x is an array of decimal digits and a is an ordinary
 // JavaScript number. base is the number base of the array x.
 function multiplyByNumber(num, x, base) {
-    if (num < 0) { return null; }
-    if (num === 0) { return []; }
+    if (num < 0) {
+        return null;
+    }
+    if (num === 0) {
+        return [];
+    }
 
     let result = [];
     let power = x;
@@ -336,14 +289,14 @@ function multiplyByNumber(num, x, base) {
 // Adds two arrays for the given base (10 or 16), returning the result.
 // This turns out to be the only "primitive" operation we need.
 function add(x, y, base) {
-    let z = [];
-    let n = Math.max(x.length, y.length);
+    const z = [];
+    const n = Math.max(x.length, y.length);
     let carry = 0;
     let i = 0;
     while (i < n || carry) {
-        let xi = i < x.length ? x[i] : 0;
-        let yi = i < y.length ? y[i] : 0;
-        let zi = carry + xi + yi;
+        const xi = i < x.length ? x[i] : 0;
+        const yi = i < y.length ? y[i] : 0;
+        const zi = carry + xi + yi;
         z.push(zi % base);
         carry = Math.floor(zi / base);
         i++;
@@ -367,7 +320,7 @@ function add(x, y, base) {
 //   }
 
 //   https://stackoverflow.com/a/45631312/2377677
-function int64_to_str(a: number[], signed: boolean = false): string {
+function int64_to_str(a: number[], signed = false): string {
     const negative = signed && a[0] >= 128;
     const H = 0x100000000;
     const D = 1000000000;
@@ -380,11 +333,7 @@ function int64_to_str(a: number[], signed: boolean = false): string {
     const hd = Math.floor((h * H) / D + l / D);
     const ld = ((((h % D) * (H % D)) % D) + l) % D;
     const ldStr = ld + '';
-    return (
-        (negative ? '-' : '') +
-        (hd !== 0 ? hd + '0'.repeat(9 - ldStr.length) : '') +
-        ldStr
-    );
+    return (negative ? '-' : '') + (hd !== 0 ? hd + '0'.repeat(9 - ldStr.length) : '') + ldStr;
 }
 
 function parseFlake63(flake: string, format = 'obj') {
@@ -415,7 +364,7 @@ function parseFlake63(flake: string, format = 'obj') {
         worker,
         counter,
         timestamp,
-        date: new Date(timestamp)
+        date: new Date(timestamp),
     };
 }
 
@@ -428,20 +377,13 @@ interface BuildFlakeParams {
     reserved?: boolean;
 }
 
-function buildFlake63({
-    id,
-    processId = 0,
-    worker = 0,
-    counter,
-    timestamp,
-    reserved = false
-}: BuildFlakeParams) {
+function buildFlake63({ id, processId = 0, worker = 0, counter, timestamp, reserved = false }: BuildFlakeParams) {
     worker = worker & 0x1f;
     processId = processId & 0x0f;
     id = id === undefined ? (processId << 5) | worker : id & 0x3ff;
     const reservedBit = reserved ? 1 : 0;
 
-    let result = new Array(8);
+    const result = new Array(8);
 
     // first 7 bits - so we have space for reserved
     let accum = rshift(timestamp, 42 - 7);
@@ -566,11 +508,7 @@ function StringToBinary(string) {
     len = string.length;
     chars = [];
     isUCS2 = false;
-    for (
-        i = _i = 0;
-        0 <= len ? _i < len : _i > len;
-        i = 0 <= len ? ++_i : --_i
-    ) {
+    for (i = _i = 0; 0 <= len ? _i < len : _i > len; i = 0 <= len ? ++_i : --_i) {
         code = String.prototype.charCodeAt.call(string, i);
         if (code > 255) {
             isUCS2 = true;
@@ -583,10 +521,7 @@ function StringToBinary(string) {
     if (isUCS2 === true) {
         return unescape(encodeURIComponent(string));
     } else {
-        return String.fromCharCode.apply(
-            null,
-            Array.prototype.slice.apply(chars)
-        );
+        return String.fromCharCode.apply(null, Array.prototype.slice.apply(chars));
     }
 }
 
